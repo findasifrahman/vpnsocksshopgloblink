@@ -50,6 +50,5 @@ jobs:
       - name: Deploy to Vercel
         run: |
           vercel --prod --token=${{ secrets.VERCEL_TOKEN }} \
-            --scope=${{ secrets.VERCEL_ORG_ID }} \
             --confirm \
             --env DATABASE_URL=${{ secrets.DATABASE_URL }} 
