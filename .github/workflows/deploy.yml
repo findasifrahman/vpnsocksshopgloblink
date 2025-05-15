@@ -24,11 +24,17 @@ jobs:
         run: |
           npm install
           npm install @prisma/client@latest prisma@latest
-          npm install date-fns@latest
+          npm install date-fns@2.30.0
+          npm install @mui/x-date-pickers@6.19.4
           npm install eslint@latest eslint-config-next@latest
 
       - name: Generate Prisma Client
         run: npx prisma generate
+
+      - name: Run Prisma Migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run linting
         run: npm run lint
