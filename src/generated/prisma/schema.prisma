@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  super_admin
+}
+
+model system_users {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  last_login  DateTime?
+  password    String
+  role        Role     @default(admin)
+}
+
+model shawdowsocks_code {
+  vpn_id           String   @id @default(uuid())
+  main_link        String
+  alternative_link String?
+  mirror1          String?
+  mirror2          String?
+  code_usage_count Int
+  code_max_usage   Int
+  total_data       BigInt
+  valid_upto       DateTime
+  created_at       DateTime @default(now())
+  data_left        BigInt
+  password         String
+
+  vpn_users        vpn_users[]
+}
+
+model vpn_users {
+  userId     String   @id @default(uuid())
+  name       String
+  package_days Int
+  passportNo String?
+  phnNo      String?
+  email      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  vpn_id     String
+  shawdowsocks_code shawdowsocks_code @relation(fields: [vpn_id], references: [vpn_id])
+}
+
+model password_protect {
+  id          String   @id @default(uuid())
+  password    String
+  expiry_date DateTime
+}
