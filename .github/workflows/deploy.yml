@@ -52,5 +52,6 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./
           vercel-args: '--prod'
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }} 
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-env: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }} 
