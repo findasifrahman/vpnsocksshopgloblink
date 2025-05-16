@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Container } from '@mui/material';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import { usePathname } from 'next/navigation';
 
 const theme = createTheme({
   palette: {
@@ -20,16 +21,23 @@ export default function Providers({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith('/admin');
+
   return (
     <AppRouterCacheProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <Navbar />
-          <Container component="main" sx={{ mt: 4, mb: 4, flex: 1 }}>
-            {children}
-          </Container>
-          <Footer />
+          {!isAdminRoute && <Navbar />}
+          {isAdminRoute ? (
+            children
+          ) : (
+            <Container component="main" sx={{ mt: 4, mb: 4, flex: 1 }}>
+              {children}
+            </Container>
+          )}
+          {!isAdminRoute && <Footer />}
         </Box>
       </ThemeProvider>
     </AppRouterCacheProvider>

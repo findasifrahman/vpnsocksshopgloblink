@@ -63,11 +63,15 @@ export default function Navbar() {
           </Link>
         </Typography>
         <Button color="inherit" component={Link} href="/">
-          Home
+          <Typography variant="h6" component="div" color="white" sx={{ flexGrow: 1 }}>
+            Home
+          </Typography>
         </Button>
         {isAuthenticated && userRole !== 'super_admin' && (
           <Button color="inherit" component={Link} href="/add-user">
-            Add New User
+            <Typography variant="h6" component="div" color="white" sx={{ flexGrow: 1 }}>
+              Add VPN User
+            </Typography>
           </Button>
         )}
         <IconButton

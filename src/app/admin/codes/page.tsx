@@ -23,7 +23,11 @@ export default function CodesPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ 
+        fontFamily: '"Poppins", sans-serif',
+        fontWeight: 600,
+        color: theme.palette.primary.main
+      }}>
         ShadowSocks Codes Management
       </Typography>
 
@@ -33,6 +37,12 @@ export default function CodesPage() {
           onChange={handleTabChange}
           variant={isMobile ? "fullWidth" : "standard"}
           centered={!isMobile}
+          sx={{
+            '& .MuiTab-root': {
+              fontFamily: '"Poppins", sans-serif',
+              fontWeight: 500,
+            }
+          }}
         >
           <Tab label="Codes List" />
           <Tab label="Add New Code" />
@@ -48,9 +58,7 @@ export default function CodesPage() {
           <ShadowSocksCodes />
         ) : (
           <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="h6" gutterBottom>
-              Add New Code
-            </Typography>
+
             <ShadowSocksCodes showFormOnly />
           </Paper>
         )}

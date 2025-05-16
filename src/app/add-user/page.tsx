@@ -16,13 +16,24 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Grid,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import QRCodeModal from '@/components/QRCodeModal';
+import {
+  VpnKey as VpnKeyIcon,
+} from '@mui/icons-material';
 
 const FormContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
   marginTop: theme.spacing(4),
+}));
+
+const PackageSummary = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(4),
+  backgroundColor: theme.palette.primary.main,
+  color: 'white',
 }));
 
 const packageOptions = [
@@ -31,18 +42,31 @@ const packageOptions = [
   { value: 30, label: '30 Days' }
 ];
 
+interface PackageAvailability {
+  fifteenDayPackages: number;
+  twentyDayPackages: number;
+  thirtyDayPackages: number;
+}
+
+const initialFormData = {
+  name: '',
+  package_days: '',
+  passportNo: '',
+  phnNo: '',
+  email: '',
+  paid_amount: 30,
+};
+
 export default function AddUserPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    package_days: '',
-    passportNo: '',
-    phnNo: '',
-    email: '',
-    paid_amount: 30, // Default value
+  const [packageAvailability, setPackageAvailability] = useState<PackageAvailability>({
+    fifteenDayPackages: 0,
+    twentyDayPackages: 0,
+    thirtyDayPackages: 0,
   });
+  const [formData, setFormData] = useState(initialFormData);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [password, setPassword] = useState('');
   const [showQRDialog, setShowQRDialog] = useState(false);
@@ -52,40 +76,57 @@ export default function AddUserPage() {
     mirror1?: string;
     mirror2?: string;
   } | null>(null);
+  const [modalTimer, setModalTimer] = useState(60);
 
   useEffect(() => {
-    // Check authentication
-    const checkAuth = async () => {
+    // Check authentication and fetch package availability
+    const initialize = async () => {
       try {
-        const response = await fetch('/api/auth/check');
-        if (!response.ok) {
-          console.log('Auth check failed:', response.status);
+        const [authResponse, packageResponse] = await Promise.all([
+          fetch('/api/auth/check'),
+          fetch('/api/admin/package-availability')
+        ]);
+
+        if (!authResponse.ok) {
+          console.log('Auth check failed:', authResponse.status);
           router.push('/login');
           return;
         }
-        const data = await response.json();
-        console.log('Auth check response:', data); // Debug log
+
+        const authData = await authResponse.json();
+        console.log('Auth check response:', authData);
         
-        if (!data.authenticated || !data.role) {
+        if (!authData.authenticated || !authData.role) {
           console.log('Not authenticated or missing role');
           router.push('/login');
           return;
         }
 
-        if (!['admin', 'super_admin'].includes(data.role)) {
-          console.log('Insufficient permissions:', data.role);
+        if (!['admin', 'super_admin'].includes(authData.role)) {
+          console.log('Insufficient permissions:', authData.role);
           router.push('/');
           return;
+        }
+
+        if (packageResponse.ok) {
+          const packageData = await packageResponse.json();
+          setPackageAvailability(packageData);
         }
         
         setLoading(false);
       } catch (err) {
-        console.error('Auth check error:', err);
+        console.error('Initialization error:', err);
         router.push('/login');
       }
     };
-    checkAuth();
+    initialize();
   }, [router]);
+
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setError('');
+    setPassword('');
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -98,11 +139,26 @@ export default function AddUserPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Check if selected package is available
+    const selectedDays = parseInt(formData.package_days);
+    const availablePackages = {
+      15: packageAvailability.fifteenDayPackages,
+      20: packageAvailability.twentyDayPackages,
+      30: packageAvailability.thirtyDayPackages,
+    }[selectedDays] || 0;
+
+    if (availablePackages <= 0) {
+      setError(`No ${selectedDays}-day packages available`);
+      return;
+    }
+
     setShowPasswordDialog(true);
   };
 
   const handlePasswordSubmit = async () => {
     try {
+      console.log('Submitting with password:', password); // Debug log
       const response = await fetch('/api/users/add', {
         method: 'POST',
         headers: {
@@ -115,6 +171,8 @@ export default function AddUserPage() {
       });
 
       const data = await response.json();
+      console.log('Response status:', response.status); // Debug log
+      console.log('Response data:', data); // Debug log
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to add user');
@@ -126,10 +184,41 @@ export default function AddUserPage() {
         return;
       }
 
+      // Update package availability
+      const updatedAvailability = { ...packageAvailability };
+      const selectedDays = parseInt(formData.package_days);
+      if (selectedDays === 15) {
+        updatedAvailability.fifteenDayPackages--;
+      } else if (selectedDays === 20) {
+        updatedAvailability.twentyDayPackages--;
+      } else if (selectedDays === 30) {
+        updatedAvailability.thirtyDayPackages--;
+      }
+      setPackageAvailability(updatedAvailability);
+
+      // Reset form and show QR code
+      resetForm();
       setQrData(data);
       setShowPasswordDialog(false);
       setShowQRDialog(true);
+      setModalTimer(60);
+
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setModalTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setShowQRDialog(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Cleanup timer on unmount
+      return () => clearInterval(timer);
     } catch (err) {
+      console.error('Error details:', err); // Debug log
       setError(err instanceof Error ? err.message : 'An error occurred');
       setShowPasswordDialog(false);
     }
@@ -145,9 +234,44 @@ export default function AddUserPage() {
 
   return (
     <Container maxWidth="md">
+      <PackageSummary elevation={3}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <VpnKeyIcon sx={{ mr: 1 }} />
+          <Typography variant="h6" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 500 }}>
+            Available Packages
+          </Typography>
+        </Box>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+              {packageAvailability.fifteenDayPackages}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              15-Day Packages
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+              {packageAvailability.twentyDayPackages}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              20-Day Packages
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+              {packageAvailability.thirtyDayPackages}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              30-Day Packages
+            </Typography>
+          </Grid>
+        </Grid>
+      </PackageSummary>
+
       <FormContainer elevation={3}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Add New User
+          Add VPN User
         </Typography>
 
         {error && (
@@ -177,8 +301,18 @@ export default function AddUserPage() {
             margin="normal"
           >
             {packageOptions.map(option => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
+              <MenuItem 
+                key={option.value} 
+                value={option.value}
+                disabled={
+                  (option.value === 15 && packageAvailability.fifteenDayPackages <= 0) ||
+                  (option.value === 20 && packageAvailability.twentyDayPackages <= 0) ||
+                  (option.value === 30 && packageAvailability.thirtyDayPackages <= 0)
+                }
+              >
+                {option.label} ({option.value === 15 ? packageAvailability.fifteenDayPackages :
+                                option.value === 20 ? packageAvailability.twentyDayPackages :
+                                packageAvailability.thirtyDayPackages} available)
               </MenuItem>
             ))}
           </TextField>
@@ -226,7 +360,9 @@ export default function AddUserPage() {
             fullWidth
             sx={{ mt: 3 }}
           >
-            Add User
+            <Typography variant="h6" component="div" color="white" sx={{ flexGrow: 1 }}>
+              Add VPN User
+            </Typography>
           </Button>
         </Box>
       </FormContainer>
@@ -263,6 +399,8 @@ export default function AddUserPage() {
           mirror1={qrData.mirror1}
           mirror2={qrData.mirror2}
           title="VPN Connection QR Code"
+          message={`Subscription code found! This window will close in ${modalTimer} seconds.`}
+          countdown={modalTimer}
         />
       )}
     </Container>

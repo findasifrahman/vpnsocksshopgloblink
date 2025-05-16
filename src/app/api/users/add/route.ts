@@ -1,24 +1,24 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { name, package_days, passportNo, phnNo, email, password } = await request.json();
+    const body = await request.json();
+    const {
+      name,
+      package_days,
+      passportNo,
+      phnNo,
+      email,
+      paid_amount,
+      password,
+    } = body;
 
-    // Validate input
-    if (!name || !package_days || !password) {
-      return NextResponse.json(
-        { message: 'Name, package days, and password are required' },
-        { status: 400 }
-      );
-    }
-
-    // Check password protection
+    // Verify protection password from database
     const passwordProtect = await prisma.password_protect.findFirst({
       where: {
-        password,
+        password: password,
         expiry_date: {
           gt: new Date(),
         },
@@ -27,64 +27,51 @@ export async function POST(request: Request) {
 
     if (!passwordProtect) {
       return NextResponse.json(
-        { message: 'Invalid or expired password' },
+        { error: 'Invalid or expired password' },
         { status: 401 }
       );
     }
 
-    // Find available QR code
-    const today = new Date();
-    const expiryDate = new Date();
-    expiryDate.setDate(today.getDate() + parseInt(package_days));
+    // Get current date
+    const currentDate = new Date();
+    const packageEndDate = new Date();
+    packageEndDate.setDate(packageEndDate.getDate() + parseInt(package_days));
 
-    const availableQRCode = await prisma.shawdowsocks_code.findFirst({
-      where: {
-        AND: [
-          {
-            activated_from: {
-              lte: today,
-            },
-          },
-          {
-            valid_upto: {
-              gt: expiryDate,
-            },
-          },
-          {
-            code_usage_count: {
-              lt: prisma.shawdowsocks_code.fields.code_max_usage,
-            },
-          },
-        ],
-      },
-      orderBy: {
-        created_at: 'asc',
-      },
-    });
+    // Find available package with earliest activated_from date
+    const availablePackage = await prisma.$queryRaw`
+      SELECT * FROM shawdowsocks_code 
+      WHERE activated_from <= ${currentDate}
+      AND valid_upto > ${packageEndDate}
+      AND code_usage_count < code_max_usage
+      ORDER BY activated_from ASC
+      LIMIT 1
+    `;
 
-    if (!availableQRCode) {
+    if (!availablePackage || !Array.isArray(availablePackage) || availablePackage.length === 0) {
       return NextResponse.json(
-        { message: 'no_subscription_code_available' },
+        { message: 'no_qr_code' },
         { status: 404 }
       );
     }
 
-    // Create new user
-    const newUser = await prisma.vpn_users.create({
+    const selectedPackage = availablePackage[0];
+
+    // Create VPN user
+    const vpnUser = await prisma.vpn_users.create({
       data: {
-        userId: crypto.randomUUID(),
         name,
         package_days: parseInt(package_days),
         passportNo,
         phnNo,
         email,
-        vpn_id: availableQRCode.vpn_id,
+        paid_amount: parseFloat(paid_amount),
+        vpn_id: selectedPackage.vpn_id,
       },
     });
 
-    // Update QR code usage count
+    // Update package usage count
     await prisma.shawdowsocks_code.update({
-      where: { vpn_id: availableQRCode.vpn_id },
+      where: { vpn_id: selectedPackage.vpn_id },
       data: {
         code_usage_count: {
           increment: 1,
@@ -92,17 +79,16 @@ export async function POST(request: Request) {
       },
     });
 
-    // Return QR code data
     return NextResponse.json({
-      main_link: availableQRCode.main_link,
-      alternative_link: availableQRCode.alternative_link,
-      mirror1: availableQRCode.mirror1,
-      mirror2: availableQRCode.mirror2,
+      main_link: selectedPackage.main_link,
+      alternative_link: selectedPackage.alternative_link,
+      mirror1: selectedPackage.mirror1,
+      mirror2: selectedPackage.mirror2,
     });
   } catch (error) {
-    console.error('Add user error:', error);
+    console.error('Error adding VPN user:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to add VPN user' },
       { status: 500 }
     );
   }

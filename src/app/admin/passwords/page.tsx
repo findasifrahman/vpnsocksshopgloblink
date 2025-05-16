@@ -23,7 +23,11 @@ export default function PasswordsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ 
+        fontFamily: '"Poppins", sans-serif',
+        fontWeight: 600,
+        color: theme.palette.primary.main
+      }}>
         Password Protection Management
       </Typography>
 
@@ -33,6 +37,12 @@ export default function PasswordsPage() {
           onChange={handleTabChange}
           variant={isMobile ? "fullWidth" : "standard"}
           centered={!isMobile}
+          sx={{
+            '& .MuiTab-root': {
+              fontFamily: '"Poppins", sans-serif',
+              fontWeight: 500,
+            }
+          }}
         >
           <Tab label="Passwords List" />
           <Tab label="Add New Password" />

@@ -23,7 +23,11 @@ export default function UsersPage() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ 
+        fontFamily: '"Poppins", sans-serif',
+        fontWeight: 600,
+        color: theme.palette.primary.main
+      }}>
         System Users Management
       </Typography>
 
@@ -33,6 +37,12 @@ export default function UsersPage() {
           onChange={handleTabChange}
           variant={isMobile ? "fullWidth" : "standard"}
           centered={!isMobile}
+          sx={{
+            '& .MuiTab-root': {
+              fontFamily: '"Poppins", sans-serif',
+              fontWeight: 500,
+            }
+          }}
         >
           <Tab label="Users List" />
           <Tab label="Add New User" />
@@ -48,9 +58,7 @@ export default function UsersPage() {
           <SystemUsers />
         ) : (
           <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="h6" gutterBottom>
-              Add New User
-            </Typography>
+
             <SystemUsers showFormOnly />
           </Paper>
         )}

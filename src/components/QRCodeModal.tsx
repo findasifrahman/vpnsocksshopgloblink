@@ -10,6 +10,7 @@ import {
   Typography,
   IconButton,
   ButtonGroup,
+  Link,
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import CloseIcon from '@mui/icons-material/Close';
@@ -22,6 +23,8 @@ interface QRCodeModalProps {
   mirror1?: string;
   mirror2?: string;
   title?: string;
+  message?: string;
+  countdown: number;
 }
 
 export default function QRCodeModal({
@@ -32,8 +35,9 @@ export default function QRCodeModal({
   mirror1,
   mirror2,
   title = 'QR Code',
+  message,
+  countdown,
 }: QRCodeModalProps) {
-  const [countdown, setCountdown] = useState(60);
   const [activeLink, setActiveLink] = useState<'main' | 'alternative' | 'mirror1' | 'mirror2'>('main');
   const [showLinks, setShowLinks] = useState({
     alternative: false,
@@ -41,20 +45,7 @@ export default function QRCodeModal({
     mirror2: false,
   });
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (open && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-    } else if (countdown === 0) {
-      handleClose();
-    }
-    return () => clearInterval(timer);
-  }, [open, countdown]);
-
   const handleClose = () => {
-    setCountdown(60);
     setActiveLink('main');
     setShowLinks({
       alternative: false,
@@ -69,7 +60,6 @@ export default function QRCodeModal({
     if (type !== 'main') {
       setShowLinks(prev => ({ ...prev, [type]: true }));
     }
-    setCountdown(60);
   };
 
   const getCurrentLink = () => {
@@ -113,6 +103,11 @@ export default function QRCodeModal({
       </DialogTitle>
 
       <DialogContent>
+        {message && (
+          <Typography variant="body1" color="success.main" sx={{ mb: 2 }}>
+            {message}
+          </Typography>
+        )}
         <Box display="flex" flexDirection="column" alignItems="center" gap={3}>
           <Box
             sx={{
@@ -168,17 +163,23 @@ export default function QRCodeModal({
 
           {showLinks.alternative && alternativeLink && (
             <Typography variant="body2" color="text.secondary" align="center">
-              {alternativeLink}
+              <Link href={alternativeLink} target="_blank" rel="noopener noreferrer">
+                {alternativeLink}
+              </Link>
             </Typography>
           )}
           {showLinks.mirror1 && mirror1 && (
             <Typography variant="body2" color="text.secondary" align="center">
-              {mirror1}
+              <Link href={mirror1} target="_blank" rel="noopener noreferrer">
+                {mirror1}
+              </Link>
             </Typography>
           )}
           {showLinks.mirror2 && mirror2 && (
             <Typography variant="body2" color="text.secondary" align="center">
-              {mirror2}
+              <Link href={mirror2} target="_blank" rel="noopener noreferrer">
+                {mirror2}
+              </Link>
             </Typography>
           )}
         </Box>

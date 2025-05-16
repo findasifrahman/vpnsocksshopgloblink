@@ -1,184 +1,214 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Box,
+  Paper,
   Typography,
-  CircularProgress,
-  Alert,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
+  CircularProgress,
   useTheme,
 } from '@mui/material';
 import {
   People as PeopleIcon,
+  AttachMoney as MoneyIcon,
   VpnKey as VpnKeyIcon,
-  Lock as LockIcon,
 } from '@mui/icons-material';
 
-interface DashboardStats {
-  usersCount: number;
-  codesCount: number;
-  passwordsCount: number;
+interface SummaryData {
+  todayUsers: number;
+  yesterdayUsers: number;
+  thisMonthUsers: number;
+  todayAmount: number;
+  yesterdayAmount: number;
+  thisMonthAmount: number;
+}
+
+interface PackageData {
+  fifteenDayPackages: number;
+  twentyDayPackages: number;
+  thirtyDayPackages: number;
 }
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [stats, setStats] = useState<DashboardStats>({
-    usersCount: 0,
-    codesCount: 0,
-    passwordsCount: 0,
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    todayUsers: 0,
+    yesterdayUsers: 0,
+    thisMonthUsers: 0,
+    todayAmount: 0,
+    yesterdayAmount: 0,
+    thisMonthAmount: 0,
+  });
+  const [packageData, setPackageData] = useState<PackageData>({
+    fifteenDayPackages: 0,
+    twentyDayPackages: 0,
+    thirtyDayPackages: 0,
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check');
-        if (!response.ok) {
-          router.push('/login');
-          return;
-        }
-        const data = await response.json();
-        if (data.role !== 'super_admin') {
-          router.push('/');
-          return;
-        }
-        setLoading(false);
-        fetchStats();
-      } catch (err) {
-        router.push('/login');
-      }
-    };
-    checkAuth();
-  }, [router]);
+    fetchData();
+  }, []);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     try {
-      const [usersRes, codesRes, passwordsRes] = await Promise.all([
-        fetch('/api/admin/system-users'),
-        fetch('/api/admin/shadow-socks'),
-        fetch('/api/admin/password-protect'),
+      const [summaryResponse, packageResponse] = await Promise.all([
+        fetch('/api/admin/summary'),
+        fetch('/api/admin/package-availability')
       ]);
 
-      const users = await usersRes.json();
-      const codes = await codesRes.json();
-      const passwords = await passwordsRes.json();
+      if (!summaryResponse.ok || !packageResponse.ok) {
+        throw new Error('Failed to fetch data');
+      }
 
-      setStats({
-        usersCount: users.length,
-        codesCount: codes.length,
-        passwordsCount: passwords.length,
-      });
+      const [summaryData, packageData] = await Promise.all([
+        summaryResponse.json(),
+        packageResponse.json()
+      ]);
+
+      setSummaryData(summaryData);
+      setPackageData(packageData);
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const cards = [
-    {
-      title: 'System Users',
-      count: stats.usersCount,
-      icon: <PeopleIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/users',
-      color: theme.palette.primary.main,
-    },
-    {
-      title: 'ShadowSocks Codes',
-      count: stats.codesCount,
-      icon: <VpnKeyIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/codes',
-      color: theme.palette.secondary.main,
-    },
-    {
-      title: 'Password Protection',
-      count: stats.passwordsCount,
-      icon: <LockIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/passwords',
-      color: theme.palette.success.main,
-    },
-  ];
-
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '100%' }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
-        Admin Dashboard
+    <Box>
+      <Typography variant="h4" gutterBottom sx={{ 
+        fontFamily: '"Poppins", sans-serif',
+        fontWeight: 600,
+        color: theme.palette.primary.main,
+        mb: 4
+      }}>
+        Dashboard Summary
       </Typography>
 
-      <Grid container spacing={3} sx={{ width: '100%', m: 0 }}>
-        {cards.map((card) => (
-          <Grid item xs={12} sm={6} md={4} key={card.title}>
-            <Card 
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[4],
-                },
-              }}
-            >
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  mb: 2,
-                  color: card.color,
-                }}>
-                  {card.icon}
-                  <Typography variant="h6" sx={{ ml: 1 }}>
-                    {card.title}
-                  </Typography>
-                </Box>
-                <Typography 
-                  variant="h3" 
-                  component="div" 
-                  sx={{ 
-                    fontWeight: 'bold',
-                    color: card.color,
-                  }}
-                >
-                  {card.count}
+      <Grid container spacing={3}>
+        {/* Users Summary */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3, backgroundColor: theme.palette.primary.main, color: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <PeopleIcon sx={{ mr: 1 }} />
+              <Typography variant="h6" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 500 }}>
+                Total Users
+              </Typography>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  {summaryData.todayUsers}
                 </Typography>
-              </CardContent>
-              <CardActions>
-                <Button 
-                  size="small" 
-                  onClick={() => router.push(card.path)}
-                  sx={{ 
-                    color: card.color,
-                    '&:hover': {
-                      backgroundColor: `${card.color}10`,
-                    },
-                  }}
-                >
-                  Manage
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Today
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  {summaryData.yesterdayUsers}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Yesterday
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  {summaryData.thisMonthUsers}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  This Month
+                </Typography>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+
+        {/* Revenue Summary */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3, backgroundColor: theme.palette.secondary.main, color: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <MoneyIcon sx={{ mr: 1 }} />
+              <Typography variant="h6" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 500 }}>
+                Total Revenue
+              </Typography>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  ${summaryData.todayAmount}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Today
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  ${summaryData.yesterdayAmount}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Yesterday
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  ${summaryData.thisMonthAmount}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  This Month
+                </Typography>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+
+        {/* Package Availability */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3, backgroundColor: theme.palette.info.main, color: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <VpnKeyIcon sx={{ mr: 1 }} />
+              <Typography variant="h6" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 500 }}>
+                Available Packages
+              </Typography>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  {packageData.fifteenDayPackages}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  15-Day Packages
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  {packageData.twentyDayPackages}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  20-Day Packages
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
+                  {packageData.thirtyDayPackages}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  30-Day Packages
+                </Typography>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
       </Grid>
     </Box>
   );
