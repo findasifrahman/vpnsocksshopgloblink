@@ -78,13 +78,41 @@ export default function AddUserPage() {
   } | null>(null);
   const [modalTimer, setModalTimer] = useState(60);
 
+  const fetchPackageAvailability = async () => {
+    try {
+      const response = await fetch('/api/admin/package-availability', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (response.ok) {
+        const packageData = await response.json();
+        setPackageAvailability(packageData);
+      }
+    } catch (error) {
+      console.error('Error fetching package availability:', error);
+    }
+  };
+
   useEffect(() => {
     // Check authentication and fetch package availability
     const initialize = async () => {
       try {
         const [authResponse, packageResponse] = await Promise.all([
-          fetch('/api/auth/check'),
-          fetch('/api/admin/package-availability')
+          fetch('/api/auth/check', {
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          }),
+          fetch('/api/admin/package-availability', {
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          })
         ]);
 
         if (!authResponse.ok) {
@@ -158,11 +186,13 @@ export default function AddUserPage() {
 
   const handlePasswordSubmit = async () => {
     try {
-      console.log('Submitting with password:', password); // Debug log
+      console.log('Submitting with password:', password);
       const response = await fetch('/api/users/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         body: JSON.stringify({
           ...formData,
@@ -171,8 +201,8 @@ export default function AddUserPage() {
       });
 
       const data = await response.json();
-      console.log('Response status:', response.status); // Debug log
-      console.log('Response data:', data); // Debug log
+      console.log('Response status:', response.status);
+      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to add user');
@@ -184,17 +214,8 @@ export default function AddUserPage() {
         return;
       }
 
-      // Update package availability
-      const updatedAvailability = { ...packageAvailability };
-      const selectedDays = parseInt(formData.package_days);
-      if (selectedDays === 15) {
-        updatedAvailability.fifteenDayPackages--;
-      } else if (selectedDays === 20) {
-        updatedAvailability.twentyDayPackages--;
-      } else if (selectedDays === 30) {
-        updatedAvailability.thirtyDayPackages--;
-      }
-      setPackageAvailability(updatedAvailability);
+      // Fetch updated package availability
+      await fetchPackageAvailability();
 
       // Reset form and show QR code
       resetForm();
@@ -218,7 +239,7 @@ export default function AddUserPage() {
       // Cleanup timer on unmount
       return () => clearInterval(timer);
     } catch (err) {
-      console.error('Error details:', err); // Debug log
+      console.error('Error details:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       setShowPasswordDialog(false);
     }

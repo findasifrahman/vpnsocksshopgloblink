@@ -196,7 +196,7 @@ export default function VpnUsersPage() {
                     <TableCell>{user.passportNo || '-'}</TableCell>
                     <TableCell>{user.phnNo || '-'}</TableCell>
                     <TableCell>{user.email || '-'}</TableCell>
-                    <TableCell>${user.paid_amount}</TableCell>
+                    <TableCell>{user.paid_amount}</TableCell>
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>

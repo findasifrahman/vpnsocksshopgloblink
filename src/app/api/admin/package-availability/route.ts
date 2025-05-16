@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 interface PackageAvailability {
   fifteenDayPackages: number;
@@ -9,6 +10,10 @@ interface PackageAvailability {
 
 export async function GET() {
   try {
+    // Revalidate the path to ensure fresh data
+    revalidatePath('/add-user');
+    revalidatePath('/admin');
+
     const now = new Date();
     const fifteenDaysFromNow = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
     const twentyDaysFromNow = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000);
@@ -59,16 +64,34 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({
-      fifteenDayPackages,
-      twentyDayPackages,
-      thirtyDayPackages
-    });
+    return NextResponse.json(
+      {
+        fifteenDayPackages,
+        twentyDayPackages,
+        thirtyDayPackages
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        }
+      }
+    );
   } catch (error) {
     console.error('Error fetching package availability:', error);
     return NextResponse.json(
       { error: 'Failed to fetch package availability' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        }
+      }
     );
   }
 } 

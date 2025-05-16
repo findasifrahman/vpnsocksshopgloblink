@@ -138,7 +138,6 @@ export default function AdminDashboard() {
         <Grid item xs={12}>
           <Paper sx={{ p: 3, backgroundColor: theme.palette.secondary.main, color: 'white' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <MoneyIcon sx={{ mr: 1 }} />
               <Typography variant="h6" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 500 }}>
                 Total Revenue
               </Typography>
@@ -146,7 +145,7 @@ export default function AdminDashboard() {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
                 <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
-                  ${summaryData.todayAmount}
+                  {summaryData.todayAmount}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   Today
@@ -154,7 +153,7 @@ export default function AdminDashboard() {
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
-                  ${summaryData.yesterdayAmount}
+                  {summaryData.yesterdayAmount}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   Yesterday
@@ -162,7 +161,7 @@ export default function AdminDashboard() {
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Typography variant="h4" sx={{ fontFamily: '"Poppins", sans-serif', fontWeight: 600 }}>
-                  ${summaryData.thisMonthAmount}
+                  {summaryData.thisMonthAmount}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   This Month
