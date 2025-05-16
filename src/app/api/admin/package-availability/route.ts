@@ -48,20 +48,22 @@ export async function GET() {
       const remainingUsage = code.code_max_usage - code.code_usage_count;
       const validUntil = new Date(code.valid_upto);
       
-      // Calculate days remaining
+      // Calculate days remaining from now until valid_upto
       const daysRemaining = Math.ceil((validUntil.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
       // Add to appropriate package counts based on remaining days
-      if (daysRemaining >= 30) {
-        thirtyDayPackages += remainingUsage;
-        twentyDayPackages += remainingUsage;
-        fifteenDayPackages += remainingUsage;
-      } else if (daysRemaining >= 20) {
-        twentyDayPackages += remainingUsage;
-        fifteenDayPackages += remainingUsage;
-      } else if (daysRemaining >= 15) {
+      // A code is valid for a package if it has enough days remaining
+      if (daysRemaining >= 15) {
         fifteenDayPackages += remainingUsage;
       }
+      if (daysRemaining >= 20) {
+        twentyDayPackages += remainingUsage;
+      }
+      if (daysRemaining >= 30) {
+        thirtyDayPackages += remainingUsage;
+      }
+
+
     });
 
     return NextResponse.json(
