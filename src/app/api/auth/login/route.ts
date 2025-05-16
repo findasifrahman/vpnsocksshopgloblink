@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 18 * 60 * 60, // 18 hours
     });
 
     // Return user data (excluding password)

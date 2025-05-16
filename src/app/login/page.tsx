@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -36,17 +37,19 @@ export default function LoginPage() {
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/check');
-      if (response.ok) {
-        const data = await response.json();
-        // Redirect based on role
-        if (data.user.role === 'super_admin') {
+      const data = await response.json();
+      
+      if (response.ok && data.authenticated && data.role) {
+        if (data.role === 'super_admin') {
           router.push('/admin');
-        } else {
+        } else if (data.role === 'admin') {
           router.push('/add-user');
         }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -70,11 +73,17 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
+      if (!data.role) {
+        throw new Error('User role not found');
+      }
+
       // Redirect based on role
       if (data.role === 'super_admin') {
         router.push('/admin');
-      } else {
+      } else if (data.role === 'admin') {
         router.push('/add-user');
+      } else {
+        throw new Error('Invalid user role');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -82,6 +91,16 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (isChecking) {
+    return (
+      <Container maxWidth="sm">
+        <LoginContainer elevation={3}>
+          <Typography>Checking authentication...</Typography>
+        </LoginContainer>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="sm">

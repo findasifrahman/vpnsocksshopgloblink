@@ -4,25 +4,32 @@ import { AppBar, Toolbar, Typography, Button, IconButton, Menu, MenuItem } from 
 import Link from 'next/link';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [pathname]); // Re-check auth when route changes
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/check');
+      const response = await fetch('/api/auth/check', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
-        setIsAuthenticated(true);
-        setUserRole(data.user.role);
+        setIsAuthenticated(data.authenticated);
+        setUserRole(data.role);
       } else {
         setIsAuthenticated(false);
         setUserRole(null);
@@ -44,10 +51,17 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       setIsAuthenticated(false);
       setUserRole(null);
       router.push('/login');
+      router.refresh();
     } catch (error) {
       console.error('Logout failed:', error);
     }
@@ -102,9 +116,7 @@ export default function Navbar() {
           {isAuthenticated ? (
             <MenuItem onClick={handleLogout}>Logout</MenuItem>
           ) : (
-            <>
-              <MenuItem component={Link} href="/login" onClick={handleClose}>Login</MenuItem>
-            </>
+            <MenuItem component={Link} href="/login" onClick={handleClose}>Login</MenuItem>
           )}
         </Menu>
       </Toolbar>
