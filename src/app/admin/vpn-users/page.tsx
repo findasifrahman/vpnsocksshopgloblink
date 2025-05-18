@@ -157,7 +157,10 @@ export default function VpnUsersPage() {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete user');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete user');
+      }
 
       // Refresh the user list
       fetchUsers();

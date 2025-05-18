@@ -57,10 +57,12 @@ model vpn_users {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   paid_amount   Float
-  vpn_id        String
+  vpn_id        String   @unique
   added_by      String
   admin         system_users @relation("AdminToVpnUsers", fields: [added_by], references: [id])
   vpn_code      shawdowsocks_code @relation(fields: [vpn_id], references: [vpn_id])
+
+  @@index([id])
 }
 
 model password_protect {
