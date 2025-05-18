@@ -5,14 +5,6 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const users = await prisma.system_users.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        password: true,
-        role: true,
-        last_login: true,
-      },
       orderBy: {
         name: 'asc',
       },
@@ -31,12 +23,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, shop_name } = body;
 
     // Validate required fields
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !shop_name) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'All fields are required' },
         { status: 400 }
       );
     }
@@ -53,6 +45,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if shop exists
+    const shop = await prisma.shop_name.findUnique({
+      where: { id: shop_name }
+    });
+
+    if (!shop) {
+      return NextResponse.json(
+        { error: 'Invalid shop selected' },
+        { status: 400 }
+      );
+    }
+
     // Create user with plain text password (no hashing)
     const user = await prisma.system_users.create({
       data: {
@@ -60,7 +64,8 @@ export async function POST(request: Request) {
         email,
         password, // Store as plain text
         role: role || 'admin',
-      },
+        shop_name
+      }
     });
 
     return NextResponse.json(user);

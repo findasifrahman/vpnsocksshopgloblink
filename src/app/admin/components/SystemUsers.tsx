@@ -21,6 +21,10 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  SelectChangeEvent,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -31,6 +35,15 @@ interface SystemUser {
   password: string;
   role: string;
   last_login: string | null;
+  shop_name: string | null;
+  shop?: {
+    shopname: string;
+  };
+}
+
+interface ShopName {
+  id: string;
+  shopname: string;
 }
 
 interface SystemUsersProps {
@@ -39,6 +52,7 @@ interface SystemUsersProps {
 
 export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) {
   const [users, setUsers] = useState<SystemUser[]>([]);
+  const [shops, setShops] = useState<ShopName[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -48,6 +62,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
     email: '',
     password: '',
     role: 'admin',
+    shop_name: '',
   });
   const [deleteDialog, setDeleteDialog] = useState<{ 
     open: boolean; 
@@ -65,7 +80,19 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
     } else {
       setLoading(false);
     }
+    fetchShops();
   }, [showFormOnly]);
+
+  const fetchShops = async () => {
+    try {
+      const response = await fetch('/api/admin/shop-names');
+      if (!response.ok) throw new Error('Failed to fetch shops');
+      const data = await response.json();
+      setShops(data);
+    } catch (err) {
+      console.error('Error fetching shops:', err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -80,7 +107,15 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -94,6 +129,12 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
     setError('');
     setSuccess('');
 
+    if (!formData.name || !formData.email || !formData.password || !formData.shop_name) {
+      setError('All fields are required');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/admin/system-users', {
         method: 'POST',
@@ -103,7 +144,10 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error('Failed to add user');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to add user');
+      }
 
       setSuccess('User added successfully');
       setFormData({
@@ -111,6 +155,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
         email: '',
         password: '',
         role: 'admin',
+        shop_name: '',
       });
       if (!showFormOnly) {
         fetchUsers();
@@ -177,6 +222,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
                   <TableCell>Email</TableCell>
                   <TableCell>Password</TableCell>
                   <TableCell>Role</TableCell>
+                  <TableCell>Shop</TableCell>
                   <TableCell>Last Login</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -188,6 +234,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.password}</TableCell>
                     <TableCell>{user.role}</TableCell>
+                    <TableCell>{user.shop?.shopname || '-'}</TableCell>
                     <TableCell>
                       {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
                     </TableCell>
@@ -215,7 +262,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
             label="Name"
             name="name"
             value={formData.name}
-            onChange={handleChange}
+            onChange={handleTextFieldChange}
             margin="normal"
             disabled={submitting}
           />
@@ -226,7 +273,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
             name="email"
             type="email"
             value={formData.email}
-            onChange={handleChange}
+            onChange={handleTextFieldChange}
             margin="normal"
             disabled={submitting}
           />
@@ -237,27 +284,40 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
             name="password"
             type="password"
             value={formData.password}
-            onChange={handleChange}
+            onChange={handleTextFieldChange}
             margin="normal"
             disabled={submitting}
           />
-          <TextField
-            required
-            fullWidth
-            select
-            label="Role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            margin="normal"
-            disabled={submitting}
-            SelectProps={{
-              native: true,
-            }}
-          >
-            <option value="admin">Admin</option>
-            <option value="super_admin">Super Admin</option>
-          </TextField>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Role</InputLabel>
+            <Select
+              name="role"
+              value={formData.role}
+              onChange={handleSelectChange}
+              label="Role"
+              disabled={submitting}
+            >
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="super_admin">Super Admin</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl fullWidth margin="normal" required>
+            <InputLabel>Shop</InputLabel>
+            <Select
+              name="shop_name"
+              value={formData.shop_name}
+              onChange={handleSelectChange}
+              label="Shop"
+              disabled={submitting}
+              error={!formData.shop_name}
+            >
+              {shops.map((shop) => (
+                <MenuItem key={shop.id} value={shop.id}>
+                  {shop.shopname}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <Button
             type="submit"
             variant="contained"

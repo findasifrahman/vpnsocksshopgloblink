@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       authenticated: true,
       role: user.role,
-      email: user.email
+      email: user.email,
+      id: user.id
     });
   } catch (error) {
     console.error('Auth check error:', error);

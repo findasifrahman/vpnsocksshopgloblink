@@ -51,8 +51,11 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   margin: '8px 16px',
   borderRadius: '8px',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease-in-out',
   '&:hover': {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    transform: 'translateX(4px)',
   },
   '& .MuiListItemIcon-root': {
     color: 'white',
@@ -107,6 +110,7 @@ export default function AdminLayout({
     { text: 'System Users', icon: <PeopleIcon />, path: '/admin/users' },
     { text: 'ShadowSocks Codes', icon: <VpnKeyIcon />, path: '/admin/codes' },
     { text: 'Password Protection', icon: <LockIcon />, path: '/admin/passwords' },
+    { text: 'Shop Names', icon: <PeopleIcon />, path: '/admin/shop-names' },
   ];
 
   const drawer = (

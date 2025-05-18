@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       email,
       paid_amount,
       password,
+      added_by
     } = body;
 
     // Verify protection password from database
@@ -28,6 +29,23 @@ export async function POST(request: NextRequest) {
     if (!passwordProtect) {
       return NextResponse.json(
         { error: 'Invalid or expired password' },
+        { status: 401 }
+      );
+    }
+
+    // Verify that the added_by user exists and is an admin
+    const adminUser = await prisma.system_users.findUnique({
+      where: {
+        id: added_by,
+        role: {
+          in: ['admin', 'super_admin']
+        }
+      }
+    });
+
+    if (!adminUser) {
+      return NextResponse.json(
+        { error: 'Invalid admin user' },
         { status: 401 }
       );
     }
@@ -66,6 +84,7 @@ export async function POST(request: NextRequest) {
         email,
         paid_amount: parseFloat(paid_amount),
         vpn_id: selectedPackage.vpn_id,
+        added_by: added_by
       },
     });
 

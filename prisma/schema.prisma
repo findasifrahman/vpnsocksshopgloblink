@@ -25,6 +25,9 @@ model system_users {
   last_login  DateTime?
   password    String
   role        Role     @default(admin)
+  shop_name   String?
+  shop        shop_name? @relation(fields: [shop_name], references: [id])
+  vpn_users   vpn_users[] @relation("AdminToVpnUsers")
 }
 
 model shawdowsocks_code {
@@ -45,22 +48,30 @@ model shawdowsocks_code {
 }
 
 model vpn_users {
-  userId     String   @id @default(uuid())
-  name       String
-  package_days Int
-  passportNo String?
-  phnNo      String?
-  email      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  paid_amount Int     @default(30)
-
-  vpn_id     String
-  shawdowsocks_code shawdowsocks_code @relation(fields: [vpn_id], references: [vpn_id])
+  id            String   @id @default(uuid())
+  name          String
+  package_days  Int
+  passportNo    String?
+  phnNo         String?
+  email         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  paid_amount   Float
+  vpn_id        String
+  added_by      String
+  admin         system_users @relation("AdminToVpnUsers", fields: [added_by], references: [id])
+  vpn_code      shawdowsocks_code @relation(fields: [vpn_id], references: [vpn_id])
 }
 
 model password_protect {
   id          String   @id @default(uuid())
   password    String
   expiry_date DateTime
+}
+
+model shop_name {
+  id          String   @id @default(uuid())
+  shopname    String   @unique
+  createdAt   DateTime @default(now())
+  system_users system_users[]
 }

@@ -8,11 +8,21 @@ import {
   Grid,
   CircularProgress,
   useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Card,
+  CardContent,
+  Divider,
 } from '@mui/material';
 import {
   People as PeopleIcon,
   AttachMoney as MoneyIcon,
   VpnKey as VpnKeyIcon,
+  Store as StoreIcon,
 } from '@mui/icons-material';
 
 interface SummaryData {
@@ -28,6 +38,22 @@ interface PackageData {
   fifteenDayPackages: number;
   twentyDayPackages: number;
   thirtyDayPackages: number;
+}
+
+interface ShopStats {
+  shopName: string;
+  today: {
+    count: number;
+    amount: number;
+  };
+  yesterday: {
+    count: number;
+    amount: number;
+  };
+  thisMonth: {
+    count: number;
+    amount: number;
+  };
 }
 
 export default function AdminDashboard() {
@@ -46,6 +72,7 @@ export default function AdminDashboard() {
     twentyDayPackages: 0,
     thirtyDayPackages: 0,
   });
+  const [shopStats, setShopStats] = useState<ShopStats[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -53,22 +80,25 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [summaryResponse, packageResponse] = await Promise.all([
+      const [summaryResponse, packageResponse, shopStatsResponse] = await Promise.all([
         fetch('/api/admin/summary'),
-        fetch('/api/admin/package-availability')
+        fetch('/api/admin/package-availability'),
+        fetch('/api/admin/shop-stats')
       ]);
 
-      if (!summaryResponse.ok || !packageResponse.ok) {
+      if (!summaryResponse.ok || !packageResponse.ok || !shopStatsResponse.ok) {
         throw new Error('Failed to fetch data');
       }
 
-      const [summaryData, packageData] = await Promise.all([
+      const [summaryData, packageData, shopStats] = await Promise.all([
         summaryResponse.json(),
-        packageResponse.json()
+        packageResponse.json(),
+        shopStatsResponse.json()
       ]);
 
       setSummaryData(summaryData);
       setPackageData(packageData);
+      setShopStats(shopStats);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -208,6 +238,85 @@ export default function AdminDashboard() {
             </Grid>
           </Paper>
         </Grid>
+      </Grid>
+
+      {/* Shop Statistics Cards */}
+      <Typography variant="h5" gutterBottom sx={{ 
+        fontFamily: '"Poppins", sans-serif',
+        fontWeight: 600,
+        color: theme.palette.primary.main,
+        mt: 4,
+        mb: 3
+      }}>
+        Shop-wise Statistics
+      </Typography>
+
+      <Grid container spacing={3}>
+        {shopStats.map((shop) => (
+          <Grid item xs={12} md={4} key={shop.shopName}>
+            <Card 
+              elevation={3}
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme.shadows[8]
+                }
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <StoreIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+                  <Typography variant="h6" sx={{ 
+                    fontFamily: '"Poppins", sans-serif',
+                    fontWeight: 600,
+                    color: theme.palette.primary.main
+                  }}>
+                    {shop.shopName}
+                  </Typography>
+                </Box>
+
+                <Grid container spacing={2}>
+                  {/* Today Stats */}
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2, bgcolor: theme.palette.primary.light, color: 'white' }}>
+                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Today</Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                        <Typography variant="h6">{shop.today.count} Users</Typography>
+                        <Typography variant="h6">¥{shop.today.amount.toFixed(2)}</Typography>
+                      </Box>
+                    </Paper>
+                  </Grid>
+
+                  {/* Yesterday Stats */}
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2, bgcolor: theme.palette.secondary.light, color: 'white' }}>
+                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Yesterday</Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                        <Typography variant="h6">{shop.yesterday.count} Users</Typography>
+                        <Typography variant="h6">¥{shop.yesterday.amount.toFixed(2)}</Typography>
+                      </Box>
+                    </Paper>
+                  </Grid>
+
+                  {/* This Month Stats */}
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2, bgcolor: theme.palette.info.light, color: 'white' }}>
+                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>This Month</Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                        <Typography variant="h6">{shop.thisMonth.count} Users</Typography>
+                        <Typography variant="h6">¥{shop.thisMonth.amount.toFixed(2)}</Typography>
+                      </Box>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
     </Box>
   );

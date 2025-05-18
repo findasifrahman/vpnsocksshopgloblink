@@ -61,6 +61,7 @@ export default function AddUserPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [packageAvailability, setPackageAvailability] = useState<PackageAvailability>({
     fifteenDayPackages: 0,
     twentyDayPackages: 0,
@@ -136,6 +137,9 @@ export default function AddUserPage() {
           return;
         }
 
+        // Set the current user's ID
+        setCurrentUserId(authData.id);
+
         if (packageResponse.ok) {
           const packageData = await packageResponse.json();
           setPackageAvailability(packageData);
@@ -186,6 +190,10 @@ export default function AddUserPage() {
 
   const handlePasswordSubmit = async () => {
     try {
+      if (!currentUserId) {
+        throw new Error('User ID not found');
+      }
+
       console.log('Submitting with password:', password);
       const response = await fetch('/api/users/add', {
         method: 'POST',
@@ -197,6 +205,7 @@ export default function AddUserPage() {
         body: JSON.stringify({
           ...formData,
           password,
+          added_by: currentUserId
         }),
       });
 
