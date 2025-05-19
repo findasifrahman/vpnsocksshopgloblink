@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import CloseIcon from '@mui/icons-material/Close';
+import { formatToGMT } from '@/lib/utils';
 
 interface QRCodeModalProps {
   open: boolean;
@@ -44,6 +45,15 @@ export default function QRCodeModal({
     mirror1: false,
     mirror2: false,
   });
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handleClose = () => {
     setActiveLink('main');
@@ -108,6 +118,9 @@ export default function QRCodeModal({
             {message}
           </Typography>
         )}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Current Time (GMT): {formatToGMT(currentTime)}
+        </Typography>
         <Box display="flex" flexDirection="column" alignItems="center" gap={3}>
           <Box
             sx={{

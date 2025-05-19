@@ -27,6 +27,7 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { formatToGMT } from '@/lib/utils';
 
 interface SystemUser {
   id: string;
@@ -96,12 +97,19 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/system-users');
+      const response = await fetch('/api/admin/system-users', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
-      setUsers(data);
+      setUsers(Array.isArray(data.users) ? data.users : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -228,7 +236,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users.map((user) => (
+                {Array.isArray(users) && users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -236,7 +244,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
                     <TableCell>{user.role}</TableCell>
                     <TableCell>{user.shop?.shopname || '-'}</TableCell>
                     <TableCell>
-                      {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                      {user.last_login ? formatToGMT(user.last_login) : 'Never'}
                     </TableCell>
                     <TableCell>
                       <IconButton

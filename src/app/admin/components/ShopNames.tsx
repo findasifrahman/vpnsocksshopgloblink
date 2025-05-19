@@ -22,6 +22,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { formatToGMT } from '@/lib/utils';
 
 interface ShopName {
   id: string;
@@ -62,7 +63,13 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
 
   const fetchShops = async () => {
     try {
-      const response = await fetch('/api/admin/shop-names');
+      const response = await fetch('/api/admin/shop-names', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch shops');
       const data = await response.json();
       setShops(data);
@@ -92,6 +99,8 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         body: JSON.stringify(formData),
       });
@@ -103,7 +112,7 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
         shopname: '',
       });
       if (!showFormOnly) {
-        fetchShops();
+        await fetchShops();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add shop');
@@ -164,7 +173,7 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
               <TableHead>
                 <TableRow>
                   <TableCell>Shop Name</TableCell>
-                  <TableCell>Created At</TableCell>
+                  <TableCell>Created At (GMT Time)</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -173,7 +182,7 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
                   <TableRow key={shop.id}>
                     <TableCell>{shop.shopname}</TableCell>
                     <TableCell>
-                      {new Date(shop.createdAt).toLocaleString()}
+                      {formatToGMT(shop.createdAt)}
                     </TableCell>
                     <TableCell>
                       <IconButton

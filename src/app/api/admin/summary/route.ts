@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentGMTTime } from '@/lib/utils';
 
 interface VpnUser {
   paid_amount: number;
@@ -7,56 +8,55 @@ interface VpnUser {
 
 export async function GET() {
   try {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const now = getCurrentGMTTime();
+    
+    // Calculate start of today, yesterday, and month in GMT
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Get today's data
+    // Get data for today
     const todayData = await prisma.vpn_users.findMany({
       where: {
         createdAt: {
           gte: startOfToday,
-        },
-      },
-      select: {
-        paid_amount: true,
-      },
+          lte: now
+        }
+      }
     });
 
-    // Get yesterday's data
+    // Get data for yesterday
     const yesterdayData = await prisma.vpn_users.findMany({
       where: {
         createdAt: {
           gte: startOfYesterday,
-          lt: startOfToday,
-        },
-      },
-      select: {
-        paid_amount: true,
-      },
+          lt: startOfToday
+        }
+      }
     });
 
-    // Get this month's data
-    const thisMonthData = await prisma.vpn_users.findMany({
+    // Get data for this month
+    const monthData = await prisma.vpn_users.findMany({
       where: {
         createdAt: {
           gte: startOfMonth,
-        },
-      },
-      select: {
-        paid_amount: true,
-      },
+          lte: now
+        }
+      }
     });
 
     // Calculate totals
     const todayUsers = todayData.length;
     const yesterdayUsers = yesterdayData.length;
-    const thisMonthUsers = thisMonthData.length;
+    const thisMonthUsers = monthData.length;
 
-    const todayAmount = todayData.reduce((sum: number, user: VpnUser) => sum + user.paid_amount, 0);
-    const yesterdayAmount = yesterdayData.reduce((sum: number, user: VpnUser) => sum + user.paid_amount, 0);
-    const thisMonthAmount = thisMonthData.reduce((sum: number, user: VpnUser) => sum + user.paid_amount, 0);
+    const todayAmount = todayData.reduce((sum, user) => sum + user.paid_amount, 0);
+    const yesterdayAmount = yesterdayData.reduce((sum, user) => sum + user.paid_amount, 0);
+    const thisMonthAmount = monthData.reduce((sum, user) => sum + user.paid_amount, 0);
 
     return NextResponse.json({
       todayUsers,
@@ -64,12 +64,12 @@ export async function GET() {
       thisMonthUsers,
       todayAmount,
       yesterdayAmount,
-      thisMonthAmount,
+      thisMonthAmount
     });
   } catch (error) {
-    console.error('Error fetching summary data:', error);
+    console.error('Error fetching summary:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch summary data' },
+      { error: 'Failed to fetch summary' },
       { status: 500 }
     );
   }

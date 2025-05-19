@@ -25,6 +25,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { formatToGMT } from '@/lib/utils';
 
 interface PasswordProtect {
   id: string;
@@ -186,7 +187,7 @@ export default function PasswordProtect({ showFormOnly = false }: PasswordProtec
                 {passwords.map((password) => (
                   <TableRow key={password.id}>
                     <TableCell>{password.password}</TableCell>
-                    <TableCell>{new Date(password.expiry_date).toLocaleString()}</TableCell>
+                    <TableCell>{formatToGMT(password.expiry_date)}</TableCell>
                     <TableCell>
                       <IconButton
                         color="error"

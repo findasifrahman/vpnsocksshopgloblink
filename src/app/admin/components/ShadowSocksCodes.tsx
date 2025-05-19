@@ -28,6 +28,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { formatToGMT } from '@/lib/utils';
 
 interface ShadowSocksCode {
   vpn_id: string;
@@ -51,18 +52,7 @@ interface ShadowSocksCodesProps {
 const formatDate = (dateString: string | null): string => {
   if (!dateString) return 'Not set';
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date:', dateString);
-      return 'Invalid date';
-    }
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatToGMT(dateString);
   } catch (error) {
     console.error('Error formatting date:', dateString, error);
     return 'Invalid date';

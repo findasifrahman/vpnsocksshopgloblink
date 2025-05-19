@@ -40,6 +40,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { formatToGMT } from '@/lib/utils';
 
 interface VpnUser {
   userId: string;
@@ -94,7 +95,13 @@ export default function VpnUsersPage() {
 
   const fetchShops = async () => {
     try {
-      const response = await fetch('/api/admin/shops');
+      const response = await fetch('/api/admin/shops', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch shops');
       const data = await response.json();
       setShops(data);
@@ -232,7 +239,7 @@ export default function VpnUsersPage() {
                   }
                 >
                   <MenuItem value="">All Shops</MenuItem>
-                  {shops.map((shop) => (
+                  {Array.isArray(shops) && shops.map((shop) => (
                     <MenuItem key={shop.shopname} value={shop.shopname}>
                       {shop.shopname}
                     </MenuItem>
@@ -334,7 +341,7 @@ export default function VpnUsersPage() {
                     <TableCell>¥{user.paid_amount.toFixed(2)}</TableCell>
                     <TableCell>{user.added_by}</TableCell>
                     <TableCell>
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {formatToGMT(user.createdAt)}
                     </TableCell>
                     <TableCell>
                       <IconButton

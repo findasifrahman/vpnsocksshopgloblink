@@ -11,6 +11,10 @@ export async function GET() {
       }
     });
 
+    // Revalidate the shop names page
+    revalidatePath('/admin/shop-names');
+    revalidatePath('/admin');
+
     return NextResponse.json(shops, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',

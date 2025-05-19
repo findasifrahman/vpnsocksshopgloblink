@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { getCurrentGMTTime, convertToUTC } from '@/lib/utils';
 
 type VpnUserWithAdmin = {
   id: string;
@@ -32,25 +33,23 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const shopName = searchParams.get('shopName');
 
-    // Calculate date range
-    const now = new Date();
+    // Calculate date range using GMT time
+    const now = getCurrentGMTTime();
     const twoMonthsAgo = new Date(now);
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
 
     // Build date conditions
     const dateConditions = {
       createdAt: {
-        gte: startDate ? new Date(startDate) : twoMonthsAgo,
-        lte: endDate ? new Date(endDate) : now
+        gte: startDate ? convertToUTC(new Date(startDate)) : twoMonthsAgo,
+        lte: endDate ? convertToUTC(new Date(endDate)) : now
       }
     };
 
     // Build shop conditions
     const shopConditions = shopName ? {
       admin: {
-        shop: {
-          shopname: shopName
-        }
+        shop_name: shopName
       }
     } : {};
 
@@ -62,27 +61,18 @@ export async function GET(request: NextRequest) {
         search ? {
           OR: [
             { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { passportNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { phnNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
             { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { vpn_id: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { passportNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { phnNo: { contains: search, mode: Prisma.QueryMode.insensitive } }
           ]
         } : {}
       ]
     };
 
-    // Get total count and amount for pagination
-    const [total, totalAmount] = await Promise.all([
-      prisma.vpn_users.count({
-        where: searchConditions
-      }),
-      prisma.vpn_users.aggregate({
-        where: searchConditions,
-        _sum: {
-          paid_amount: true
-        }
-      })
-    ]);
+    // Get total count for pagination
+    const total = await prisma.vpn_users.count({
+      where: searchConditions
+    });
 
     // Get paginated users with sorting
     const users = await prisma.vpn_users.findMany({
@@ -94,7 +84,8 @@ export async function GET(request: NextRequest) {
       },
       include: {
         admin: {
-          include: {
+          select: {
+            name: true,
             shop: {
               select: {
                 shopname: true
@@ -105,24 +96,9 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Transform the data to include admin info
-    const transformedUsers = users.map(user => ({
-      userId: user.id,
-      name: user.name,
-      package_days: user.package_days,
-      passportNo: user.passportNo,
-      phnNo: user.phnNo,
-      email: user.email,
-      createdAt: user.createdAt,
-      paid_amount: user.paid_amount,
-      vpn_id: user.vpn_id,
-      added_by: (user as any).admin?.shop?.shopname || (user as any).admin?.email || 'Unknown'
-    }));
-
     return NextResponse.json({
-      users: transformedUsers,
-      total,
-      totalAmount: totalAmount._sum.paid_amount || 0
+      users,
+      total
     });
   } catch (error) {
     console.error('Error fetching VPN users:', error);

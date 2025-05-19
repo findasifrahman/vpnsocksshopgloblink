@@ -80,10 +80,29 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const [summaryResponse, packageResponse, shopStatsResponse] = await Promise.all([
-        fetch('/api/admin/summary'),
-        fetch('/api/admin/package-availability'),
-        fetch('/api/admin/shop-stats')
+        fetch('/api/admin/summary', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }),
+        fetch('/api/admin/package-availability', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }),
+        fetch('/api/admin/shop-stats', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        })
       ]);
 
       if (!summaryResponse.ok || !packageResponse.ok || !shopStatsResponse.ok) {
@@ -96,11 +115,15 @@ export default function AdminDashboard() {
         shopStatsResponse.json()
       ]);
 
+      console.log('Summary Data:', summaryData);
+      console.log('Package Data:', packageData);
+      console.log('Shop Stats:', shopStats);
+
       setSummaryData(summaryData);
       setPackageData(packageData);
-      setShopStats(shopStats);
+      setShopStats(Array.isArray(shopStats) ? shopStats : []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -252,7 +275,7 @@ export default function AdminDashboard() {
       </Typography>
 
       <Grid container spacing={3}>
-        {shopStats.map((shop) => (
+        {Array.isArray(shopStats) && shopStats.map((shop) => (
           <Grid item xs={12} md={4} key={shop.shopName}>
             <Card 
               elevation={3}

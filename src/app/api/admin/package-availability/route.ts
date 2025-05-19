@@ -1,99 +1,73 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
-
-interface PackageAvailability {
-  fifteenDayPackages: number;
-  twentyDayPackages: number;
-  thirtyDayPackages: number;
-}
+import { getCurrentGMTTime } from '@/lib/utils';
 
 export async function GET() {
   try {
-    // Revalidate the path to ensure fresh data
-    revalidatePath('/add-user');
-    revalidatePath('/admin');
+    const now = getCurrentGMTTime();
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
 
-    const now = new Date();
-    const fifteenDaysFromNow = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
-    const twentyDaysFromNow = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000);
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    // Get all available codes
-    const availableCodes = await prisma.shawdowsocks_code.findMany({
+    // Get all available packages that meet the criteria:
+    // a) activated_from < current datetime
+    // b) valid_upto > today + package_days
+    // c) code_usage_count < code_max_usage
+    // d) pick oldest activated_from
+    const availablePackages = await prisma.shawdowsocks_code.findMany({
       where: {
         AND: [
           {
-            OR: [
-              { activated_from: null },
-              { activated_from: { lt: now } }
-            ]
+            activated_from: {
+              lt: now
+            }
           },
-          { code_usage_count: { lt: prisma.shawdowsocks_code.fields.code_max_usage } }
+          {
+            valid_upto: {
+              gt: endOfToday
+            }
+          },
+          {
+            code_usage_count: {
+              lt: prisma.shawdowsocks_code.fields.code_max_usage
+            }
+          }
         ]
       },
-      select: {
-        code_max_usage: true,
-        code_usage_count: true,
-        valid_upto: true
+      orderBy: {
+        activated_from: 'asc'
       }
     });
 
-    // Calculate available packages
+    // Calculate available packages for each duration
     let fifteenDayPackages = 0;
     let twentyDayPackages = 0;
     let thirtyDayPackages = 0;
 
-    availableCodes.forEach(code => {
-      const remainingUsage = code.code_max_usage - code.code_usage_count;
-      const validUntil = new Date(code.valid_upto);
-      
-      // Calculate days remaining from now until valid_upto
-      const daysRemaining = Math.ceil((validUntil.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    for (const pkg of availablePackages) {
+      const availableUses = pkg.code_max_usage - pkg.code_usage_count;
+      const daysUntilExpiry = Math.ceil((pkg.valid_upto.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Add to appropriate package counts based on remaining days
-      // A code is valid for a package if it has enough days remaining
-      if (daysRemaining >= 15) {
-        fifteenDayPackages += remainingUsage;
+      if (daysUntilExpiry >= 30) {
+        thirtyDayPackages += availableUses;
       }
-      if (daysRemaining >= 20) {
-        twentyDayPackages += remainingUsage;
+      if (daysUntilExpiry >= 20) {
+        twentyDayPackages += availableUses;
       }
-      if (daysRemaining >= 30) {
-        thirtyDayPackages += remainingUsage;
+      if (daysUntilExpiry >= 15) {
+        fifteenDayPackages += availableUses;
       }
+    }
 
-
+    return NextResponse.json({
+      fifteenDayPackages,
+      twentyDayPackages,
+      thirtyDayPackages
     });
-
-    return NextResponse.json(
-      {
-        fifteenDayPackages,
-        twentyDayPackages,
-        thirtyDayPackages
-      },
-      {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'Surrogate-Control': 'no-store'
-        }
-      }
-    );
   } catch (error) {
     console.error('Error fetching package availability:', error);
     return NextResponse.json(
       { error: 'Failed to fetch package availability' },
-      { 
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'Surrogate-Control': 'no-store'
-        }
-      }
+      { status: 500 }
     );
   }
 } 

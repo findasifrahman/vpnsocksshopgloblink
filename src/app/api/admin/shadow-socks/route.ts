@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { convertToUTC } from '@/lib/utils';
 
 // Helper function to convert BigInt to string
 const convertBigIntToString = (data: any): any => {
@@ -70,9 +71,9 @@ export async function POST(request: Request) {
         code_usage_count: 0,
         code_max_usage: parseInt(code_max_usage),
         total_data: BigInt(total_data),
-        valid_upto: new Date(valid_upto),
+        valid_upto: convertToUTC(valid_upto),
         data_left: BigInt(total_data),
-        activated_from: activated_from ? new Date(activated_from) : null,
+        activated_from: activated_from ? convertToUTC(activated_from) : null,
       },
     });
 
