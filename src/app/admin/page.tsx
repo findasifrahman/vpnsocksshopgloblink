@@ -17,6 +17,7 @@ import {
   Card,
   CardContent,
   Divider,
+  Alert,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -59,6 +60,7 @@ interface ShopStats {
 export default function AdminDashboard() {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [summaryData, setSummaryData] = useState<SummaryData>({
     todayUsers: 0,
     yesterdayUsers: 0,
@@ -84,8 +86,11 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      const timestamp = new Date().getTime(); // Add timestamp to prevent caching
       const [summaryResponse, packageResponse, shopStatsResponse] = await Promise.all([
-        fetch('/api/admin/summary', {
+        fetch(`/api/admin/summary?t=${timestamp}`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -94,7 +99,7 @@ export default function AdminDashboard() {
             'Surrogate-Control': 'no-store'
           }
         }),
-        fetch('/api/admin/package-availability', {
+        fetch(`/api/admin/package-availability?t=${timestamp}`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -103,7 +108,7 @@ export default function AdminDashboard() {
             'Surrogate-Control': 'no-store'
           }
         }),
-        fetch('/api/admin/shop-stats', {
+        fetch(`/api/admin/shop-stats?t=${timestamp}`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -128,11 +133,29 @@ export default function AdminDashboard() {
       console.log('Package Data:', packageData);
       console.log('Shop Stats:', shopStats);
 
+      // Validate shop stats data
+      if (!Array.isArray(shopStats)) {
+        console.error('Invalid shop stats data:', shopStats);
+        setShopStats([]);
+      } else {
+        // Filter out any invalid shop entries
+        const validShopStats = shopStats.filter(shop => 
+          shop && 
+          typeof shop === 'object' && 
+          shop.shopName && 
+          shop.today && 
+          shop.yesterday && 
+          shop.thisMonth
+        );
+        setShopStats(validShopStats);
+      }
+
       setSummaryData(summaryData);
       setPackageData(packageData);
-      setShopStats(Array.isArray(shopStats) ? shopStats : []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError('Failed to fetch dashboard data. Please try refreshing the page.');
+      setShopStats([]);
     } finally {
       setLoading(false);
     }
@@ -148,6 +171,12 @@ export default function AdminDashboard() {
 
   return (
     <Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Typography variant="h4" gutterBottom sx={{ 
         fontFamily: '"Poppins", sans-serif',
         fontWeight: 600,
@@ -284,71 +313,79 @@ export default function AdminDashboard() {
       </Typography>
 
       <Grid container spacing={3}>
-        {Array.isArray(shopStats) && shopStats.map((shop) => (
-          <Grid item xs={12} md={4} key={shop.shopName}>
-            <Card 
-              elevation={3}
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8]
-                }
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <StoreIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-                  <Typography variant="h6" sx={{ 
-                    fontFamily: '"Poppins", sans-serif',
-                    fontWeight: 600,
-                    color: theme.palette.primary.main
-                  }}>
-                    {shop.shopName}
-                  </Typography>
-                </Box>
+        {Array.isArray(shopStats) && shopStats.length > 0 ? (
+          shopStats.map((shop) => (
+            <Grid item xs={12} md={4} key={shop.shopName}>
+              <Card 
+                elevation={3}
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: theme.shadows[8]
+                  }
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <StoreIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+                    <Typography variant="h6" sx={{ 
+                      fontFamily: '"Poppins", sans-serif',
+                      fontWeight: 600,
+                      color: theme.palette.primary.main
+                    }}>
+                      {shop.shopName}
+                    </Typography>
+                  </Box>
 
-                <Grid container spacing={2}>
-                  {/* Today Stats */}
-                  <Grid item xs={12}>
-                    <Paper sx={{ p: 2, bgcolor: theme.palette.primary.light, color: 'white' }}>
-                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Today</Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                        <Typography variant="h6">{shop.today.count} Users</Typography>
-                        <Typography variant="h6">¥{shop.today.amount.toFixed(2)}</Typography>
-                      </Box>
-                    </Paper>
-                  </Grid>
+                  <Grid container spacing={2}>
+                    {/* Today Stats */}
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 2, bgcolor: theme.palette.primary.light, color: 'white' }}>
+                        <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Today</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                          <Typography variant="h6">{shop.today.count} Users</Typography>
+                          <Typography variant="h6">¥{shop.today.amount.toFixed(2)}</Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
 
-                  {/* Yesterday Stats */}
-                  <Grid item xs={12}>
-                    <Paper sx={{ p: 2, bgcolor: theme.palette.secondary.light, color: 'white' }}>
-                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Yesterday</Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                        <Typography variant="h6">{shop.yesterday.count} Users</Typography>
-                        <Typography variant="h6">¥{shop.yesterday.amount.toFixed(2)}</Typography>
-                      </Box>
-                    </Paper>
-                  </Grid>
+                    {/* Yesterday Stats */}
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 2, bgcolor: theme.palette.secondary.light, color: 'white' }}>
+                        <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>Yesterday</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                          <Typography variant="h6">{shop.yesterday.count} Users</Typography>
+                          <Typography variant="h6">¥{shop.yesterday.amount.toFixed(2)}</Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
 
-                  {/* This Month Stats */}
-                  <Grid item xs={12}>
-                    <Paper sx={{ p: 2, bgcolor: theme.palette.info.light, color: 'white' }}>
-                      <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>This Month</Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                        <Typography variant="h6">{shop.thisMonth.count} Users</Typography>
-                        <Typography variant="h6">¥{shop.thisMonth.amount.toFixed(2)}</Typography>
-                      </Box>
-                    </Paper>
+                    {/* This Month Stats */}
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 2, bgcolor: theme.palette.info.light, color: 'white' }}>
+                        <Typography variant="subtitle2" sx={{ opacity: 0.8 }}>This Month</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                          <Typography variant="h6">{shop.thisMonth.count} Users</Typography>
+                          <Typography variant="h6">¥{shop.thisMonth.amount.toFixed(2)}</Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
                   </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))
+        ) : (
+          <Grid item xs={12}>
+            <Alert severity="info">
+              No shop statistics available. Please add a shop to see statistics.
+            </Alert>
           </Grid>
-        ))}
+        )}
       </Grid>
     </Box>
   );
