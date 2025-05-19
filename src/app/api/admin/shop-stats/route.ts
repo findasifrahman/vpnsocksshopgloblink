@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentGMTTime } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const now = getCurrentGMTTime();
@@ -14,7 +17,13 @@ export async function GET(request: NextRequest) {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Get all shops
-    const shops = await prisma.shop_name.findMany();
+    const shops = await prisma.shop_name.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    console.log('Found shops:', shops);
 
     // Get stats for each shop
     const shopStats = await Promise.all(shops.map(async (shop) => {
@@ -67,6 +76,12 @@ export async function GET(request: NextRequest) {
         _sum: {
           paid_amount: true
         }
+      });
+
+      console.log(`Stats for shop ${shop.shopname}:`, {
+        today: todayStats,
+        yesterday: yesterdayStats,
+        month: monthStats
       });
 
       return {

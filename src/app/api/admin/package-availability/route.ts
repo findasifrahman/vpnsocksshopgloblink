@@ -57,7 +57,7 @@ export async function GET() {
       }
     });
 
-    console.log('Available packages:', availablePackages);
+    //console.log('Available packages:', availablePackages);
 
     // Calculate available packages for each duration
     let fifteenDayPackages = 0;

@@ -3,23 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getCurrentGMTTime, convertToUTC } from '@/lib/utils';
 
-type VpnUserWithAdmin = {
-  id: string;
-  name: string;
-  package_days: number;
-  passportNo: string | null;
-  phnNo: string | null;
-  email: string | null;
-  createdAt: Date;
-  paid_amount: number;
-  vpn_id: string;
-  admin?: {
-    email: string;
-    shop?: {
-      shopname: string;
-    } | null;
-  } | null;
-};
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,18 +54,10 @@ export async function GET(request: NextRequest) {
       ]
     };
 
-    // Get total count and amount for pagination
-    const [total, totalAmount] = await Promise.all([
-      prisma.vpn_users.count({
-        where: searchConditions
-      }),
-      prisma.vpn_users.aggregate({
-        where: searchConditions,
-        _sum: {
-          paid_amount: true
-        }
-      })
-    ]);
+    // Get total count for pagination
+    const total = await prisma.vpn_users.count({
+      where: searchConditions
+    });
 
     // Get paginated users with sorting
     const users = await prisma.vpn_users.findMany({
@@ -104,24 +81,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Transform the data to include admin info
-    const transformedUsers = users.map(user => ({
-      userId: user.id,
-      name: user.name,
-      package_days: user.package_days,
-      passportNo: user.passportNo,
-      phnNo: user.phnNo,
-      email: user.email,
-      createdAt: user.createdAt,
-      paid_amount: user.paid_amount,
-      vpn_id: user.vpn_id,
-      added_by: user.admin?.shop?.shopname || user.admin?.name || 'Unknown'
-    }));
-
     return NextResponse.json({
-      users: transformedUsers,
-      total,
-      totalAmount: totalAmount._sum.paid_amount || 0
+      users,
+      total
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      }
     });
   } catch (error) {
     console.error('Error fetching VPN users:', error);

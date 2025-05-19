@@ -4,6 +4,9 @@ import { Prisma } from '@prisma/client';
 import { getCurrentGMTTime, convertToUTC } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

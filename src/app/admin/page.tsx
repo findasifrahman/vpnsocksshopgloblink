@@ -57,6 +57,9 @@ interface ShopStats {
   };
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function AdminDashboard() {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
@@ -78,8 +81,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
-    // Set up polling to refresh data every 30 seconds
-    const interval = setInterval(fetchData, 30000);
+    // Set up polling to refresh data every 10 seconds
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -88,10 +91,11 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
 
-      const timestamp = new Date().getTime(); // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
       const [summaryResponse, packageResponse, shopStatsResponse] = await Promise.all([
         fetch(`/api/admin/summary?t=${timestamp}`, {
           cache: 'no-store',
+          next: { revalidate: 0 },
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
@@ -101,6 +105,7 @@ export default function AdminDashboard() {
         }),
         fetch(`/api/admin/package-availability?t=${timestamp}`, {
           cache: 'no-store',
+          next: { revalidate: 0 },
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
@@ -110,6 +115,7 @@ export default function AdminDashboard() {
         }),
         fetch(`/api/admin/shop-stats?t=${timestamp}`, {
           cache: 'no-store',
+          next: { revalidate: 0 },
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
