@@ -8,13 +8,35 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     const now = getCurrentGMTTime();
+    
+    // Set start of today to 00:00:00 GMT+6
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     
+    // Set end of today to 23:59:59 GMT+6
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    
+    // Set start of yesterday to 00:00:00 GMT+6
     const startOfYesterday = new Date(startOfToday);
     startOfYesterday.setDate(startOfYesterday.getDate() - 1);
     
+    // Set end of yesterday to 23:59:59 GMT+6
+    const endOfYesterday = new Date(startOfToday);
+    endOfYesterday.setMilliseconds(-1);
+    
+    // Set start of month to 1st day of current month 00:00:00 GMT+6
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    console.log('Time ranges:', {
+      now: now.toISOString(),
+      startOfToday: startOfToday.toISOString(),
+      endOfToday: endOfToday.toISOString(),
+      startOfYesterday: startOfYesterday.toISOString(),
+      endOfYesterday: endOfYesterday.toISOString(),
+      startOfMonth: startOfMonth.toISOString()
+    });
 
     // Get all shops
     const shops = await prisma.shop_name.findMany({
@@ -35,7 +57,7 @@ export async function GET(request: NextRequest) {
           },
           createdAt: {
             gte: startOfToday,
-            lte: now
+            lte: endOfToday
           }
         },
         _count: true,
@@ -79,9 +101,30 @@ export async function GET(request: NextRequest) {
       });
 
       console.log(`Stats for shop ${shop.shopname}:`, {
-        today: todayStats,
-        yesterday: yesterdayStats,
-        month: monthStats
+        today: {
+          count: todayStats._count,
+          amount: todayStats._sum?.paid_amount,
+          range: {
+            start: startOfToday.toISOString(),
+            end: endOfToday.toISOString()
+          }
+        },
+        yesterday: {
+          count: yesterdayStats._count,
+          amount: yesterdayStats._sum?.paid_amount,
+          range: {
+            start: startOfYesterday.toISOString(),
+            end: endOfYesterday.toISOString()
+          }
+        },
+        month: {
+          count: monthStats._count,
+          amount: monthStats._sum?.paid_amount,
+          range: {
+            start: startOfMonth.toISOString(),
+            end: now.toISOString()
+          }
+        }
       });
 
       return {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -79,16 +79,8 @@ export default function AdminDashboard() {
   });
   const [shopStats, setShopStats] = useState<ShopStats[]>([]);
 
-  useEffect(() => {
-    fetchData();
-    // Set up polling to refresh data every 10 seconds
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
       setError(null);
 
       const timestamp = new Date().getTime();
@@ -135,10 +127,6 @@ export default function AdminDashboard() {
         shopStatsResponse.json()
       ]);
 
-      console.log('Summary Data:', summaryData);
-      console.log('Package Data:', packageData);
-      console.log('Shop Stats:', shopStats);
-
       // Validate shop stats data
       if (!Array.isArray(shopStats)) {
         console.error('Invalid shop stats data:', shopStats);
@@ -165,7 +153,17 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    
+    // Set up polling with a longer interval (30 seconds)
+    const interval = setInterval(fetchData, 30000);
+    
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   if (loading) {
     return (
