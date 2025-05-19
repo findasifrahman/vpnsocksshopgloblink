@@ -55,8 +55,6 @@ interface VpnUser {
   added_by: string;
 }
 
-type Order = 'asc' | 'desc';
-
 interface VpnUsersResponse {
   users: VpnUser[];
   total: number;
@@ -78,7 +76,7 @@ export default function VpnUsersPage() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<VpnUser | null>(null);
-  const [order, setOrder] = useState<Order>('desc');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [orderBy, setOrderBy] = useState<keyof VpnUser>('createdAt');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -104,9 +102,10 @@ export default function VpnUsersPage() {
       });
       if (!response.ok) throw new Error('Failed to fetch shops');
       const data = await response.json();
-      setShops(data);
+      setShops(Array.isArray(data.shops) ? data.shops : []);
     } catch (error) {
       console.error('Error fetching shops:', error);
+      setShops([]);
     }
   };
 
@@ -128,20 +127,14 @@ export default function VpnUsersPage() {
       if (!response.ok) throw new Error('Failed to fetch users');
       
       const data = await response.json();
-      console.log('API Response:', data); // Debug log
+      console.log('API Response:', data);
 
-      // Ensure we have valid data
       if (!data || typeof data !== 'object') {
-        console.error('Invalid API response format:', data);
-        setUsers([]);
-        setTotalCount(0);
-        setTotalAmount(0);
-        return;
+        throw new Error('Invalid API response format');
       }
 
-      // Ensure users is an array and transform if needed
       const usersArray = Array.isArray(data.users) ? data.users : [];
-      console.log('Processed users array:', usersArray); // Debug log
+      console.log('Processed users array:', usersArray);
 
       setUsers(usersArray);
       setTotalCount(typeof data.total === 'number' ? data.total : 0);
@@ -188,7 +181,6 @@ export default function VpnUsersPage() {
         throw new Error(error.message || 'Failed to delete user');
       }
 
-      // Refresh the user list
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -204,17 +196,56 @@ export default function VpnUsersPage() {
     setOrderBy(property);
   };
 
-  const getDateRange = () => {
-    const now = new Date();
-    const twoMonthsAgo = new Date(now);
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    return {
-      from: startDate?.toLocaleDateString() || twoMonthsAgo.toLocaleDateString(),
-      to: endDate?.toLocaleDateString() || now.toLocaleDateString()
-    };
-  };
+  const renderTableContent = () => {
+    if (loading) {
+      return (
+        <TableRow>
+          <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+            <CircularProgress size={40} />
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+              Loading users...
+            </Typography>
+          </TableCell>
+        </TableRow>
+      );
+    }
 
-  const dateRange = getDateRange();
+    if (!Array.isArray(users) || users.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              No users found in the last 2 months
+            </Typography>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return users.map((user) => (
+      <TableRow key={user.userId} hover>
+        <TableCell>{user.name || '-'}</TableCell>
+        <TableCell>{user.vpn_id || '-'}</TableCell>
+        <TableCell>{user.package_days || '-'}</TableCell>
+        <TableCell>{user.passportNo || '-'}</TableCell>
+        <TableCell>{user.phnNo || '-'}</TableCell>
+        <TableCell>{user.email || '-'}</TableCell>
+        <TableCell>¥{(user.paid_amount || 0).toFixed(2)}</TableCell>
+        <TableCell>{user.added_by || '-'}</TableCell>
+        <TableCell>
+          {user.createdAt ? formatToGMT(user.createdAt) : '-'}
+        </TableCell>
+        <TableCell>
+          <IconButton
+            color="error"
+            onClick={() => handleDeleteClick(user)}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </TableCell>
+      </TableRow>
+    ));
+  };
 
   return (
     <Box>
@@ -284,7 +315,7 @@ export default function VpnUsersPage() {
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Chip
                 icon={<InfoIcon />}
-                label={`Showing data from ${dateRange.from} to ${dateRange.to}`}
+                label={`Showing data from ${startDate?.toLocaleDateString() || 'all time'} to ${endDate?.toLocaleDateString() || 'now'}`}
                 color="primary"
                 variant="outlined"
               />
@@ -331,52 +362,7 @@ export default function VpnUsersPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                    <CircularProgress size={40} />
-                    <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                      Loading users...
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : !Array.isArray(users) || users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      No users found in the last 2 months
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : users.map((user) => {
-                if (!user || typeof user !== 'object') {
-                  console.error('Invalid user data:', user);
-                  return null;
-                }
-                return (
-                  <TableRow key={user.userId || Math.random()} hover>
-                    <TableCell>{user.name || '-'}</TableCell>
-                    <TableCell>{user.vpn_id || '-'}</TableCell>
-                    <TableCell>{user.package_days || '-'}</TableCell>
-                    <TableCell>{user.passportNo || '-'}</TableCell>
-                    <TableCell>{user.phnNo || '-'}</TableCell>
-                    <TableCell>{user.email || '-'}</TableCell>
-                    <TableCell>¥{(user.paid_amount || 0).toFixed(2)}</TableCell>
-                    <TableCell>{user.added_by || '-'}</TableCell>
-                    <TableCell>
-                      {user.createdAt ? formatToGMT(user.createdAt) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        color="error"
-                        onClick={() => handleDeleteClick(user)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              }).filter(Boolean)}
+              {renderTableContent()}
             </TableBody>
           </Table>
         </TableContainer>
