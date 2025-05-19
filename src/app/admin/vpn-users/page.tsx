@@ -127,11 +127,16 @@ export default function VpnUsersPage() {
       const response = await fetch(`/api/admin/vpn-users?${params}`);
       if (!response.ok) throw new Error('Failed to fetch users');
       const data: VpnUsersResponse = await response.json();
-      setUsers(data.users);
-      setTotalCount(data.total);
-      setTotalAmount(data.totalAmount);
+      
+      // Ensure users is an array
+      setUsers(Array.isArray(data.users) ? data.users : []);
+      setTotalCount(data.total || 0);
+      setTotalAmount(data.totalAmount || 0);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
+      setTotalCount(0);
+      setTotalAmount(0);
     } finally {
       setLoading(false);
     }
@@ -321,7 +326,7 @@ export default function VpnUsersPage() {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : users.length === 0 ? (
+              ) : !Array.isArray(users) || users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
