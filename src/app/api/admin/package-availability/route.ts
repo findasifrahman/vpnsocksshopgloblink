@@ -21,12 +21,12 @@ export async function GET() {
         AND: [
           {
             activated_from: {
-              lt: convertToUTC(now) // Convert to UTC for database comparison
+              lt: now // Use GMT time directly since database stores in GMT
             }
           },
           {
             valid_upto: {
-              gt: convertToUTC(endOfToday) // Convert to UTC for database comparison
+              gt: endOfToday // Use GMT time directly since database stores in GMT
             }
           },
           {
@@ -63,7 +63,9 @@ export async function GET() {
         availableUses,
         daysUntilExpiry,
         valid_upto: pkg.valid_upto,
-        current_time: now
+        current_time: now,
+        code_usage_count: pkg.code_usage_count,
+        code_max_usage: pkg.code_max_usage
       });
 
       if (daysUntilExpiry >= 30) {

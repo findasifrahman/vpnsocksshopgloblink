@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import CloseIcon from '@mui/icons-material/Close';
-import { formatToGMT } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface QRCodeModalProps {
   open: boolean;
@@ -119,7 +119,7 @@ export default function QRCodeModal({
           </Typography>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Current Time (GMT): {formatToGMT(currentTime)}
+          Current Time: {format(currentTime, 'yyyy-MM-dd HH:mm:ss')}
         </Typography>
         <Box display="flex" flexDirection="column" alignItems="center" gap={3}>
           <Box

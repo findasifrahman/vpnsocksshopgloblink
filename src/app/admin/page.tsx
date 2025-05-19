@@ -76,6 +76,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    // Set up polling to refresh data every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
@@ -85,22 +88,28 @@ export default function AdminDashboard() {
         fetch('/api/admin/summary', {
           cache: 'no-store',
           headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Surrogate-Control': 'no-store'
           }
         }),
         fetch('/api/admin/package-availability', {
           cache: 'no-store',
           headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Surrogate-Control': 'no-store'
           }
         }),
         fetch('/api/admin/shop-stats', {
           cache: 'no-store',
           headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Surrogate-Control': 'no-store'
           }
         })
       ]);

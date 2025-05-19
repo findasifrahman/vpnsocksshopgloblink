@@ -40,7 +40,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { formatToGMT } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface VpnUser {
   userId: string;
@@ -196,6 +196,11 @@ export default function VpnUsersPage() {
     setOrderBy(property);
   };
 
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return '-';
+    return format(new Date(dateString), 'yyyy-MM-dd HH:mm:ss');
+  };
+
   const renderTableContent = () => {
     if (loading) {
       return (
@@ -233,7 +238,7 @@ export default function VpnUsersPage() {
         <TableCell>¥{(user.paid_amount || 0).toFixed(2)}</TableCell>
         <TableCell>{user.added_by || '-'}</TableCell>
         <TableCell>
-          {user.createdAt ? formatToGMT(user.createdAt) : '-'}
+          {formatDateTime(user.createdAt)}
         </TableCell>
         <TableCell>
           <IconButton

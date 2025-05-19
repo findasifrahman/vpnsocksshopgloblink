@@ -27,7 +27,7 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { formatToGMT } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface SystemUser {
   id: string;
@@ -198,6 +198,11 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
     }
   };
 
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    return format(new Date(dateString), 'yyyy-MM-dd HH:mm:ss');
+  };
+
   if (loading) {
     return null;
   }
@@ -244,7 +249,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
                     <TableCell>{user.role}</TableCell>
                     <TableCell>{user.shop?.shopname || '-'}</TableCell>
                     <TableCell>
-                      {user.last_login ? formatToGMT(user.last_login) : 'Never'}
+                      {formatDateTime(user.last_login)}
                     </TableCell>
                     <TableCell>
                       <IconButton
