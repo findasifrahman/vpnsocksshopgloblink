@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentGMTTime, convertToUTC } from '@/lib/utils';
+import { getCurrentGMTTime } from '@/lib/utils';
 
 export async function GET() {
   try {
@@ -32,9 +32,18 @@ export async function GET() {
           {
             OR: [
               {
-                code_usage_count: {
-                  lt: prisma.shawdowsocks_code.fields.code_max_usage
-                }
+                AND: [
+                  {
+                    code_usage_count: {
+                      lt: prisma.shawdowsocks_code.fields.code_max_usage
+                    }
+                  },
+                  {
+                    code_max_usage: {
+                      gt: 0
+                    }
+                  }
+                ]
               },
               {
                 code_max_usage: 0 // Allow unlimited usage
@@ -56,7 +65,10 @@ export async function GET() {
     let thirtyDayPackages = 0;
 
     for (const pkg of availablePackages) {
+      // For unlimited usage packages, count as 1 available
       const availableUses = pkg.code_max_usage === 0 ? 1 : pkg.code_max_usage - pkg.code_usage_count;
+      
+      // Calculate days until expiry using GMT times
       const daysUntilExpiry = Math.ceil((pkg.valid_upto.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       console.log(`Package ${pkg.vpn_id}:`, {
@@ -65,17 +77,21 @@ export async function GET() {
         valid_upto: pkg.valid_upto,
         current_time: now,
         code_usage_count: pkg.code_usage_count,
-        code_max_usage: pkg.code_max_usage
+        code_max_usage: pkg.code_max_usage,
+        activated_from: pkg.activated_from
       });
 
-      if (daysUntilExpiry >= 30) {
-        thirtyDayPackages += availableUses;
-      }
-      if (daysUntilExpiry >= 20) {
-        twentyDayPackages += availableUses;
-      }
-      if (daysUntilExpiry >= 15) {
-        fifteenDayPackages += availableUses;
+      // Only count packages that have available uses
+      if (availableUses > 0) {
+        if (daysUntilExpiry >= 30) {
+          thirtyDayPackages += availableUses;
+        }
+        if (daysUntilExpiry >= 20) {
+          twentyDayPackages += availableUses;
+        }
+        if (daysUntilExpiry >= 15) {
+          fifteenDayPackages += availableUses;
+        }
       }
     }
 
