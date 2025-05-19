@@ -239,7 +239,7 @@ export default function VpnUsersPage() {
                   }
                 >
                   <MenuItem value="">All Shops</MenuItem>
-                  {Array.isArray(shops) && shops.map((shop) => (
+                  {shops.map((shop) => (
                     <MenuItem key={shop.shopname} value={shop.shopname}>
                       {shop.shopname}
                     </MenuItem>
@@ -279,7 +279,7 @@ export default function VpnUsersPage() {
               )}
               <Chip
                 icon={<MoneyIcon />}
-                label={`Total Amount: ¥${totalAmount.toFixed(2)}`}
+                label={`Total Amount: ¥${(totalAmount || 0).toFixed(2)}`}
                 color="success"
                 variant="outlined"
               />
