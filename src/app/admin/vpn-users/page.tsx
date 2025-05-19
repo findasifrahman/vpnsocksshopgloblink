@@ -126,12 +126,26 @@ export default function VpnUsersPage() {
 
       const response = await fetch(`/api/admin/vpn-users?${params}`);
       if (!response.ok) throw new Error('Failed to fetch users');
-      const data: VpnUsersResponse = await response.json();
       
-      // Ensure users is an array
-      setUsers(Array.isArray(data.users) ? data.users : []);
-      setTotalCount(data.total || 0);
-      setTotalAmount(data.totalAmount || 0);
+      const data = await response.json();
+      console.log('API Response:', data); // Debug log
+
+      // Ensure we have valid data
+      if (!data || typeof data !== 'object') {
+        console.error('Invalid API response format:', data);
+        setUsers([]);
+        setTotalCount(0);
+        setTotalAmount(0);
+        return;
+      }
+
+      // Ensure users is an array and transform if needed
+      const usersArray = Array.isArray(data.users) ? data.users : [];
+      console.log('Processed users array:', usersArray); // Debug log
+
+      setUsers(usersArray);
+      setTotalCount(typeof data.total === 'number' ? data.total : 0);
+      setTotalAmount(typeof data.totalAmount === 'number' ? data.totalAmount : 0);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
@@ -334,19 +348,23 @@ export default function VpnUsersPage() {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : (
-                users.map((user) => (
-                  <TableRow key={user.userId} hover>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.vpn_id}</TableCell>
-                    <TableCell>{user.package_days}</TableCell>
+              ) : users.map((user) => {
+                if (!user || typeof user !== 'object') {
+                  console.error('Invalid user data:', user);
+                  return null;
+                }
+                return (
+                  <TableRow key={user.userId || Math.random()} hover>
+                    <TableCell>{user.name || '-'}</TableCell>
+                    <TableCell>{user.vpn_id || '-'}</TableCell>
+                    <TableCell>{user.package_days || '-'}</TableCell>
                     <TableCell>{user.passportNo || '-'}</TableCell>
                     <TableCell>{user.phnNo || '-'}</TableCell>
                     <TableCell>{user.email || '-'}</TableCell>
-                    <TableCell>¥{user.paid_amount.toFixed(2)}</TableCell>
-                    <TableCell>{user.added_by}</TableCell>
+                    <TableCell>¥{(user.paid_amount || 0).toFixed(2)}</TableCell>
+                    <TableCell>{user.added_by || '-'}</TableCell>
                     <TableCell>
-                      {formatToGMT(user.createdAt)}
+                      {user.createdAt ? formatToGMT(user.createdAt) : '-'}
                     </TableCell>
                     <TableCell>
                       <IconButton
@@ -357,8 +375,8 @@ export default function VpnUsersPage() {
                       </IconButton>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                );
+              }).filter(Boolean)}
             </TableBody>
           </Table>
         </TableContainer>
