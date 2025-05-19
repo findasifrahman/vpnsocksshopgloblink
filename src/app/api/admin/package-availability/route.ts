@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentGMTTime } from '@/lib/utils';
+import { getCurrentGMTTime, convertToUTC } from '@/lib/utils';
 
 export async function GET() {
   try {
     const now = getCurrentGMTTime();
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
+
+    console.log('Current GMT time:', now);
+    console.log('End of today GMT:', endOfToday);
 
     // Get all available packages that meet the criteria:
     // a) activated_from < current datetime
@@ -18,18 +21,25 @@ export async function GET() {
         AND: [
           {
             activated_from: {
-              lt: now
+              lt: convertToUTC(now) // Convert to UTC for database comparison
             }
           },
           {
             valid_upto: {
-              gt: endOfToday
+              gt: convertToUTC(endOfToday) // Convert to UTC for database comparison
             }
           },
           {
-            code_usage_count: {
-              lt: prisma.shawdowsocks_code.fields.code_max_usage
-            }
+            OR: [
+              {
+                code_usage_count: {
+                  lt: prisma.shawdowsocks_code.fields.code_max_usage
+                }
+              },
+              {
+                code_max_usage: 0 // Allow unlimited usage
+              }
+            ]
           }
         ]
       },
@@ -38,14 +48,23 @@ export async function GET() {
       }
     });
 
+    console.log('Available packages:', availablePackages);
+
     // Calculate available packages for each duration
     let fifteenDayPackages = 0;
     let twentyDayPackages = 0;
     let thirtyDayPackages = 0;
 
     for (const pkg of availablePackages) {
-      const availableUses = pkg.code_max_usage - pkg.code_usage_count;
+      const availableUses = pkg.code_max_usage === 0 ? 1 : pkg.code_max_usage - pkg.code_usage_count;
       const daysUntilExpiry = Math.ceil((pkg.valid_upto.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      console.log(`Package ${pkg.vpn_id}:`, {
+        availableUses,
+        daysUntilExpiry,
+        valid_upto: pkg.valid_upto,
+        current_time: now
+      });
 
       if (daysUntilExpiry >= 30) {
         thirtyDayPackages += availableUses;
@@ -58,10 +77,23 @@ export async function GET() {
       }
     }
 
+    console.log('Package counts:', {
+      fifteenDayPackages,
+      twentyDayPackages,
+      thirtyDayPackages
+    });
+
     return NextResponse.json({
       fifteenDayPackages,
       twentyDayPackages,
       thirtyDayPackages
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      }
     });
   } catch (error) {
     console.error('Error fetching package availability:', error);
