@@ -207,7 +207,7 @@ export default function AddUserPage() {
           ...formData,
           password,
           added_by: currentUserId,
-          created_at: new Date().toISOString() // This will be converted to GMT time on the server
+          created_at: new Date().toISOString() // This will be converted to UTC on the server
         }),
       });
 
