@@ -82,10 +82,15 @@ export default function AddUserPage() {
 
   const fetchPackageAvailability = async () => {
     try {
-      const response = await fetch('/api/admin/package-availability', {
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/admin/package-availability?t=${timestamp}`, {
+        cache: 'no-store',
+        next: { revalidate: 0 },
         headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
         }
       });
       
@@ -102,6 +107,7 @@ export default function AddUserPage() {
     // Check authentication and fetch package availability
     const initialize = async () => {
       try {
+        const timestamp = new Date().getTime();
         const [authResponse, packageResponse] = await Promise.all([
           fetch('/api/auth/check', {
             headers: {
@@ -109,10 +115,14 @@ export default function AddUserPage() {
               'Pragma': 'no-cache'
             }
           }),
-          fetch('/api/admin/package-availability', {
+          fetch(`/api/admin/package-availability?t=${timestamp}`, {
+            cache: 'no-store',
+            next: { revalidate: 0 },
             headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+              'Surrogate-Control': 'no-store'
             }
           })
         ]);
@@ -154,6 +164,12 @@ export default function AddUserPage() {
     };
     initialize();
   }, [router]);
+
+  // Add polling for package availability
+  useEffect(() => {
+    const interval = setInterval(fetchPackageAvailability, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const resetForm = () => {
     setFormData(initialFormData);
