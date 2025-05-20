@@ -2,14 +2,19 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentGMTTime } from '@/lib/utils';
 
+// package availibity 6 hours added to match UTC+6 in vercel deployment
+
 export async function GET() {
   try {
     const now = getCurrentGMTTime();
+    // Add 6 hours to match UTC+6
+    now.setHours(now.getHours() + 6);
+    
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
 
-    console.log('Current GMT time:', now);
-    console.log('End of today GMT:', endOfToday);
+    console.log('Current GMT+6 time:', now);
+    console.log('End of today GMT+6:', endOfToday);
 
     // Get all available packages that meet the criteria:
     // a) activated_from < current datetime
@@ -21,12 +26,12 @@ export async function GET() {
         AND: [
           {
             activated_from: {
-              lt: now // Use GMT time directly since database stores in GMT
+              lt: now // Use GMT+6 time
             }
           },
           {
             valid_upto: {
-              gt: endOfToday // Use GMT time directly since database stores in GMT
+              gt: endOfToday // Use GMT+6 time
             }
           },
           {
@@ -68,7 +73,7 @@ export async function GET() {
       // For unlimited usage packages, count as 1 available
       const availableUses = pkg.code_max_usage === 0 ? 1 : pkg.code_max_usage - pkg.code_usage_count;
       
-      // Calculate days until expiry using GMT times
+      // Calculate days until expiry using GMT+6 times
       const daysUntilExpiry = Math.ceil((pkg.valid_upto.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       console.log(`Package ${pkg.vpn_id}:`, {
