@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentGMTTime } from '@/lib/utils';
+import { getCurrentGMTTime, convertToUTC } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -9,25 +9,25 @@ export async function GET(request: NextRequest) {
   try {
     const now = getCurrentGMTTime();
     
-    // Set start of today to 00:00:00 GMT+6
+    // Set start of today to 00:00:00 UTC
     const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
+    startOfToday.setUTCHours(0, 0, 0, 0);
     
-    // Set end of today to 23:59:59 GMT+6
+    // Set end of today to 23:59:59 UTC
     const endOfToday = new Date(now);
-    endOfToday.setHours(23, 59, 59, 999);
+    endOfToday.setUTCHours(23, 59, 59, 999);
     
-    // Set start of yesterday to 00:00:00 GMT+6
+    // Set start of yesterday to 00:00:00 UTC
     const startOfYesterday = new Date(startOfToday);
-    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1);
     
-    // Set end of yesterday to 23:59:59 GMT+6
+    // Set end of yesterday to 23:59:59 UTC
     const endOfYesterday = new Date(startOfToday);
-    endOfYesterday.setMilliseconds(-1);
+    endOfYesterday.setUTCMilliseconds(-1);
     
-    // Set start of month to 1st day of current month 00:00:00 GMT+6
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    // Set start of month to 1st day of current month 00:00:00 UTC
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    startOfMonth.setUTCHours(0, 0, 0, 0);
 
     console.log('Time ranges:', {
       now: now.toISOString(),
