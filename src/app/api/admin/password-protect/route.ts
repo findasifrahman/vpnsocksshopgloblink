@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { getCurrentGMTTime } from '@/lib/utils';
 
 // GET /api/admin/password-protect
 export async function GET() {
@@ -12,9 +11,20 @@ export async function GET() {
         password: true,
         expiry_date: true,
       },
+      orderBy: {
+        expiry_date: 'desc'
+      }
     });
-    return NextResponse.json(passwords);
+    return NextResponse.json(passwords, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      }
+    });
   } catch (error) {
+    console.error('Error fetching passwords:', error);
     return NextResponse.json(
       { message: 'Failed to fetch passwords' },
       { status: 500 }
@@ -35,16 +45,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create password
+    // Create password with UTC timestamp
     const passwordProtect = await prisma.password_protect.create({
       data: {
         password,
-        expiry_date: new Date(expiry_date),
+        expiry_date: new Date(expiry_date), // Store in UTC
       },
     });
 
-    return NextResponse.json(passwordProtect);
+    return NextResponse.json(passwordProtect, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      }
+    });
   } catch (error) {
+    console.error('Error creating password:', error);
     return NextResponse.json(
       { message: 'Failed to create password' },
       { status: 500 }

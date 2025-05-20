@@ -23,7 +23,7 @@ import QRCodeModal from '@/components/QRCodeModal';
 import {
   VpnKey as VpnKeyIcon,
 } from '@mui/icons-material';
-import { formatToGMT } from '@/lib/utils';
+import { formatToGMT, getCurrentGMTTime } from '@/lib/utils';
 
 const FormContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -207,7 +207,7 @@ export default function AddUserPage() {
           ...formData,
           password,
           added_by: currentUserId,
-          created_at: new Date().toISOString() // This will be converted to UTC on the server
+          created_at: getCurrentGMTTime() // Use UTC time from utils
         }),
       });
 

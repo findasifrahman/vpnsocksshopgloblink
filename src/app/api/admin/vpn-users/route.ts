@@ -54,10 +54,18 @@ export async function GET(request: NextRequest) {
       ]
     };
 
-    // Get total count for pagination
-    const total = await prisma.vpn_users.count({
-      where: searchConditions
-    });
+    // Get total count and total amount for pagination
+    const [total, totalAmountResult] = await Promise.all([
+      prisma.vpn_users.count({
+        where: searchConditions
+      }),
+      prisma.vpn_users.aggregate({
+        where: searchConditions,
+        _sum: {
+          paid_amount: true
+        }
+      })
+    ]);
 
     // Get paginated users with sorting
     const users = await prisma.vpn_users.findMany({
@@ -83,7 +91,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       users,
-      total
+      total,
+      totalAmount: totalAmountResult._sum.paid_amount || 0
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',

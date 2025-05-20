@@ -62,10 +62,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update last_login timestamp with GMT time
+    // Update last_login timestamp in UTC
+    const currentTime = getCurrentGMTTime(); // This now returns UTC time
     await prisma.system_users.update({
       where: { id: user.id },
-      data: { last_login: getCurrentGMTTime() },
+      data: { last_login: currentTime },
     });
 
     // Create session cookie

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getCurrentGMTTime } from '@/lib/utils';
 
 // GET /api/admin/shop-names
 export async function GET() {
@@ -65,9 +66,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create shop with UTC timestamp
+    const currentTime = getCurrentGMTTime(); // This now returns UTC time
     const shop = await prisma.shop_name.create({
       data: {
-        shopname
+        shopname,
+        createdAt: currentTime
       }
     });
 

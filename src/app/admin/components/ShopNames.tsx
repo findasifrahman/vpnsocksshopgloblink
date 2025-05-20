@@ -22,7 +22,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { formatToGMT } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface ShopName {
   id: string;
@@ -144,6 +144,17 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
     }
   };
 
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    try {
+      const date = new Date(dateString);
+      return format(date, 'yyyy-MM-dd HH:mm:ss');
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
+    }
+  };
+
   if (loading) {
     return null;
   }
@@ -173,7 +184,7 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
               <TableHead>
                 <TableRow>
                   <TableCell>Shop Name</TableCell>
-                  <TableCell>Created At (GMT Time)</TableCell>
+                  <TableCell>Created At (UTC)</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -182,7 +193,7 @@ export default function ShopNames({ showFormOnly = false }: ShopNamesProps) {
                   <TableRow key={shop.id}>
                     <TableCell>{shop.shopname}</TableCell>
                     <TableCell>
-                      {formatToGMT(shop.createdAt)}
+                      {formatDateTime(shop.createdAt)}
                     </TableCell>
                     <TableCell>
                       <IconButton

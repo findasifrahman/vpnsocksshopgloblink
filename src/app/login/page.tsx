@@ -36,10 +36,23 @@ export default function LoginPage() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/check');
+      const response = await fetch('/api/auth/check', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        }
+      });
+
       const data = await response.json();
-      
+
       if (response.ok && data.authenticated && data.role) {
+        // Set role cookie
+        document.cookie = `role=${data.role}; path=/`;
+        
         if (data.role === 'super_admin') {
           router.push('/admin');
         } else if (data.role === 'admin') {
@@ -61,8 +74,13 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
         },
         body: JSON.stringify({ email, password }),
       });
@@ -76,6 +94,9 @@ export default function LoginPage() {
       if (!data.role) {
         throw new Error('User role not found');
       }
+
+      // Set role cookie
+      document.cookie = `role=${data.role}; path=/`;
 
       // Redirect based on role
       if (data.role === 'super_admin') {

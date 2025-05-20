@@ -28,7 +28,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { formatToGMT } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface ShadowSocksCode {
   vpn_id: string;
@@ -49,10 +49,11 @@ interface ShadowSocksCodesProps {
   showFormOnly?: boolean;
 }
 
-const formatDate = (dateString: string | null): string => {
+const formatDateTime = (dateString: string | null): string => {
   if (!dateString) return 'Not set';
   try {
-    return formatToGMT(dateString);
+    const date = new Date(dateString);
+    return format(date, 'yyyy-MM-dd HH:mm:ss');
   } catch (error) {
     console.error('Error formatting date:', dateString, error);
     return 'Invalid date';
@@ -285,9 +286,9 @@ export default function ShadowSocksCodes({ showFormOnly = false }: ShadowSocksCo
                     <TableCell>{code.main_link}</TableCell>
                     <TableCell>{code.code_usage_count}/{code.code_max_usage}</TableCell>
                     <TableCell>{code.data_left}</TableCell>
-                    <TableCell>{formatDate(code.valid_upto)}</TableCell>
-                    <TableCell>{formatDate(code.activated_from)}</TableCell>
-                    <TableCell>{formatDate(code.created_at)}</TableCell>
+                    <TableCell>{formatDateTime(code.valid_upto)}</TableCell>
+                    <TableCell>{formatDateTime(code.activated_from)}</TableCell>
+                    <TableCell>{formatDateTime(code.created_at)}</TableCell>
                     <TableCell>
                       <IconButton
                         color="error"

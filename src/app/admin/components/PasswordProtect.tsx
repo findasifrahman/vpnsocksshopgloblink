@@ -22,10 +22,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { formatToGMT } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface PasswordProtect {
   id: string;
@@ -39,120 +36,123 @@ interface PasswordProtectProps {
 
 export default function PasswordProtect({ showFormOnly = false }: PasswordProtectProps) {
   const [passwords, setPasswords] = useState<PasswordProtect[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState({
-    password: '',
-    expiry_date: new Date(),
-  });
-  const [deleteDialog, setDeleteDialog] = useState<{ 
-    open: boolean; 
-    passwordId: string | null;
+  const [newPassword, setNewPassword] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    passwordId: string;
     loading: boolean;
   }>({
     open: false,
-    passwordId: null,
+    passwordId: '',
     loading: false,
   });
 
-  useEffect(() => {
-    if (!showFormOnly) {
-      fetchPasswords();
-    } else {
-      setLoading(false);
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    try {
+      const date = new Date(dateString);
+      return format(date, 'yyyy-MM-dd HH:mm:ss');
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
     }
-  }, [showFormOnly]);
+  };
 
   const fetchPasswords = async () => {
     try {
-      const response = await fetch('/api/admin/password-protect');
+      const response = await fetch('/api/admin/password-protect', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch passwords');
       const data = await response.json();
       setPasswords(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch passwords');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching passwords:', error);
+      setError('Failed to fetch passwords');
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleDateChange = (date: Date | null) => {
-    if (date) {
-      setFormData(prev => ({
-        ...prev,
-        expiry_date: date
-      }));
-    }
-  };
+  useEffect(() => {
+    fetchPasswords();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError('');
-    setSuccess('');
+    setError(null);
+    setSuccess(null);
+
+    if (!newPassword || !expiryDate) {
+      setError('Please fill in all fields');
+      return;
+    }
 
     try {
       const response = await fetch('/api/admin/password-protect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          password: newPassword,
+          expiry_date: expiryDate,
+        }),
       });
 
-      if (!response.ok) throw new Error('Failed to add password');
-
-      setSuccess('Password added successfully');
-      setFormData({
-        password: '',
-        expiry_date: new Date(),
-      });
-      if (!showFormOnly) {
-        fetchPasswords();
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to create password');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add password');
-    } finally {
-      setSubmitting(false);
+
+      setNewPassword('');
+      setExpiryDate('');
+      setSuccess('Password created successfully');
+      fetchPasswords();
+    } catch (error) {
+      console.error('Error creating password:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create password');
     }
   };
 
   const handleDelete = async () => {
-    if (!deleteDialog.passwordId) return;
-
     setDeleteDialog(prev => ({ ...prev, loading: true }));
-    setError('');
-    setSuccess('');
-
     try {
       const response = await fetch(`/api/admin/password-protect/${deleteDialog.passwordId}`, {
         method: 'DELETE',
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        }
       });
 
-      if (!response.ok) throw new Error('Failed to delete password');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to delete password');
+      }
 
       setSuccess('Password deleted successfully');
-      setDeleteDialog({ open: false, passwordId: null, loading: false });
       fetchPasswords();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete password');
-      setDeleteDialog(prev => ({ ...prev, loading: false }));
+    } catch (error) {
+      console.error('Error deleting password:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete password');
+    } finally {
+      setDeleteDialog({ open: false, passwordId: '', loading: false });
     }
   };
-
-  if (loading) {
-    return null;
-  }
 
   return (
     <Box>
@@ -179,7 +179,7 @@ export default function PasswordProtect({ showFormOnly = false }: PasswordProtec
               <TableHead>
                 <TableRow>
                   <TableCell>Password</TableCell>
-                  <TableCell>Expiry Date</TableCell>
+                  <TableCell>Expiry Date (UTC)</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -187,7 +187,9 @@ export default function PasswordProtect({ showFormOnly = false }: PasswordProtec
                 {passwords.map((password) => (
                   <TableRow key={password.id}>
                     <TableCell>{password.password}</TableCell>
-                    <TableCell>{formatToGMT(password.expiry_date)}</TableCell>
+                    <TableCell>
+                      {formatDateTime(password.expiry_date)}
+                    </TableCell>
                     <TableCell>
                       <IconButton
                         color="error"
@@ -207,60 +209,61 @@ export default function PasswordProtect({ showFormOnly = false }: PasswordProtec
       {showFormOnly && (
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
+            label="Password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
             required
             fullWidth
-            label="Password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
             margin="normal"
-            disabled={submitting}
           />
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DateTimePicker
-              label="Expiry Date"
-              value={formData.expiry_date}
-              onChange={handleDateChange}
-              sx={{ width: '100%', mt: 2 }}
-              disabled={submitting}
-            />
-          </LocalizationProvider>
+          <TextField
+            label="Expiry Date"
+            type="datetime-local"
+            value={expiryDate}
+            onChange={(e) => setExpiryDate(e.target.value)}
+            required
+            fullWidth
+            margin="normal"
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
           <Button
             type="submit"
             variant="contained"
+            color="primary"
             sx={{ mt: 2 }}
-            disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={20} /> : null}
           >
-            {submitting ? 'Adding...' : 'Add Password'}
+            Add Password
           </Button>
         </Box>
       )}
 
       <Dialog
         open={deleteDialog.open}
-        onClose={() => !deleteDialog.loading && setDeleteDialog({ open: false, passwordId: null, loading: false })}
+        onClose={() => setDeleteDialog({ ...deleteDialog, open: false })}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>Delete Password</DialogTitle>
         <DialogContent>
           Are you sure you want to delete this password?
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setDeleteDialog({ open: false, passwordId: null, loading: false })}
+          <Button
+            onClick={() => setDeleteDialog({ ...deleteDialog, open: false })}
             disabled={deleteDialog.loading}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleDelete} 
-            color="error" 
-            variant="contained"
+          <Button
+            onClick={handleDelete}
+            color="error"
             disabled={deleteDialog.loading}
-            startIcon={deleteDialog.loading ? <CircularProgress size={20} /> : null}
           >
-            {deleteDialog.loading ? 'Deleting...' : 'Delete'}
+            {deleteDialog.loading ? (
+              <CircularProgress size={24} />
+            ) : (
+              'Delete'
+            )}
           </Button>
         </DialogActions>
       </Dialog>

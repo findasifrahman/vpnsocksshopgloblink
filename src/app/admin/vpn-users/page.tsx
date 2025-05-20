@@ -43,7 +43,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format } from 'date-fns';
 
 interface VpnUser {
-  userId: string;
+  id: string;
   name: string;
   package_days: number;
   passportNo: string | null;
@@ -172,7 +172,7 @@ export default function VpnUsersPage() {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`/api/admin/vpn-users/${selectedUser.userId}`, {
+      const response = await fetch(`/api/admin/vpn-users/${selectedUser.id}`, {
         method: 'DELETE',
       });
 
@@ -198,7 +198,13 @@ export default function VpnUsersPage() {
 
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return '-';
-    return format(new Date(dateString), 'yyyy-MM-dd HH:mm:ss');
+    try {
+      const date = new Date(dateString);
+      return format(date, 'yyyy-MM-dd HH:mm:ss');
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
+    }
   };
 
   const renderTableContent = () => {
@@ -228,7 +234,7 @@ export default function VpnUsersPage() {
     }
 
     return users.map((user) => (
-      <TableRow key={user.userId} hover>
+      <TableRow key={user.id} hover>
         <TableCell>{user.name || '-'}</TableCell>
         <TableCell>{user.vpn_id || '-'}</TableCell>
         <TableCell>{user.package_days || '-'}</TableCell>
@@ -360,7 +366,7 @@ export default function VpnUsersPage() {
                     direction={orderBy === 'createdAt' ? order : 'asc'}
                     onClick={() => handleRequestSort('createdAt')}
                   >
-                    Created At
+                    Created At (UTC)
                   </TableSortLabel>
                 </TableCell>
                 <TableCell>Actions</TableCell>

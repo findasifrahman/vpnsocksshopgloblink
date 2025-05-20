@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { convertToUTC } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,8 @@ export async function POST(request: NextRequest) {
       email,
       paid_amount,
       password,
-      added_by
+      added_by,
+      created_at
     } = body;
 
     // Verify protection password from database
@@ -50,9 +52,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current date
-    const currentDate = new Date();
-    const packageEndDate = new Date();
+    // Get current date in UTC
+    const currentDate = convertToUTC(new Date());
+    const packageEndDate = convertToUTC(new Date());
     packageEndDate.setDate(packageEndDate.getDate() + parseInt(package_days));
 
     // Find available package with earliest activated_from date
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     const selectedPackage = availablePackage[0];
 
-    // Create VPN user
+    // Create VPN user with UTC timestamp
     const vpnUser = await prisma.vpn_users.create({
       data: {
         name,
@@ -84,7 +86,8 @@ export async function POST(request: NextRequest) {
         email,
         paid_amount: parseFloat(paid_amount),
         vpn_id: selectedPackage.vpn_id,
-        added_by: added_by
+        added_by: added_by,
+        createdAt: convertToUTC(new Date(created_at)) // Ensure UTC time using correct field name
       },
     });
 

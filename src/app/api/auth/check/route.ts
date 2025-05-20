@@ -6,18 +6,18 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
+    const session = request.cookies.get('session')?.value;
 
-    if (!token) {
+    if (!session) {
       return NextResponse.json(
-        { error: 'No token provided' },
+        { authenticated: false },
         { status: 401 }
       );
     }
 
     const user = await prisma.system_users.findFirst({
       where: {
-        id: token
+        id: session
       },
       select: {
         id: true,
@@ -35,16 +35,18 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid token' },
+        { authenticated: false },
         { status: 401 }
       );
     }
 
     return NextResponse.json({
-      user: {
-        ...user,
-        shopName: user.shop?.shopname
-      }
+      authenticated: true,
+      role: user.role,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      shopName: user.shop?.shopname
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error checking auth:', error);
     return NextResponse.json(
-      { error: 'Failed to check authentication' },
+      { authenticated: false },
       { status: 500 }
     );
   }

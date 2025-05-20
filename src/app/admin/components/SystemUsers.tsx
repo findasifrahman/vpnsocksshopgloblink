@@ -200,7 +200,13 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
 
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return 'Never';
-    return format(new Date(dateString), 'yyyy-MM-dd HH:mm:ss');
+    try {
+      const date = new Date(dateString);
+      return format(date, 'yyyy-MM-dd HH:mm:ss');
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
+    }
   };
 
   if (loading) {
@@ -236,7 +242,7 @@ export default function SystemUsers({ showFormOnly = false }: SystemUsersProps) 
                   <TableCell>Password</TableCell>
                   <TableCell>Role</TableCell>
                   <TableCell>Shop</TableCell>
-                  <TableCell>Last Login</TableCell>
+                  <TableCell>Last Login (UTC)</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>

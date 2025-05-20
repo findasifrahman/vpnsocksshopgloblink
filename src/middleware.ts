@@ -2,41 +2,52 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Add paths that don't require authentication
-const publicPaths = ['/login', '/api/auth/login', '/api/auth/check'];
+const publicPaths = [
+  '/',
+  '/login',
+  '/api/auth/login',
+  '/api/auth/check',
+  '/api/auth/register'
+];
+
+// Add paths that require specific roles
+const adminOnlyPaths = ['/add-user', '/api/admin/add-user'];
+const superAdminOnlyPaths = ['/admin', '/api/admin'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Allow public paths without checking session
-  if (publicPaths.includes(pathname)) {
-    const response = NextResponse.next();
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-    response.headers.set('Surrogate-Control', 'no-store');
-    return response;
+  if (publicPaths.some(path => pathname === path || pathname.startsWith(path))) {
+    return NextResponse.next();
   }
 
   // Check for session cookie
   const session = request.cookies.get('session');
+  const role = request.cookies.get('role')?.value;
   
   // If no session and not on a public path, redirect to login
-  if (!session && !publicPaths.includes(pathname)) {
+  if (!session) {
     const url = new URL('/login', request.url);
-    const response = NextResponse.redirect(url);
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-    response.headers.set('Surrogate-Control', 'no-store');
-    return response;
+    return NextResponse.redirect(url);
   }
 
-  const response = NextResponse.next();
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  response.headers.set('Surrogate-Control', 'no-store');
-  return response;
+  // Check role-based access
+  if (superAdminOnlyPaths.some(path => pathname.startsWith(path))) {
+    if (role !== 'super_admin') {
+      const url = new URL('/add-user', request.url);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  if (adminOnlyPaths.some(path => pathname.startsWith(path))) {
+    if (role !== 'admin' && role !== 'super_admin') {
+      const url = new URL('/login', request.url);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

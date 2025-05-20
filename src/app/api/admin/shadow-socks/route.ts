@@ -29,7 +29,14 @@ export async function GET() {
         created_at: 'desc',
       },
     });
-    return NextResponse.json(convertBigIntToString(codes));
+    return NextResponse.json(convertBigIntToString(codes), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      }
+    });
   } catch (error) {
     console.error('Error fetching ShadowSocks codes:', error);
     return NextResponse.json(
@@ -62,6 +69,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Create code with UTC timestamps
     const code = await prisma.shawdowsocks_code.create({
       data: {
         main_link,
@@ -71,13 +79,21 @@ export async function POST(request: Request) {
         code_usage_count: 0,
         code_max_usage: parseInt(code_max_usage),
         total_data: BigInt(total_data),
-        valid_upto: convertToUTC(valid_upto),
+        valid_upto: convertToUTC(valid_upto), // Store in UTC
         data_left: BigInt(total_data),
-        activated_from: activated_from ? convertToUTC(activated_from) : null,
+        activated_from: activated_from ? convertToUTC(activated_from) : null, // Store in UTC
+        created_at: new Date(), // This will be stored in UTC by default
       },
     });
 
-    return NextResponse.json(convertBigIntToString(code));
+    return NextResponse.json(convertBigIntToString(code), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      }
+    });
   } catch (error) {
     console.error('Error creating ShadowSocks code:', error);
     return NextResponse.json(
