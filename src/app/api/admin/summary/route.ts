@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentGMTTime } from '@/lib/utils';
 
+// Force dynamic responses and prevent edge caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
+
 interface VpnUser {
   paid_amount: number;
 }
@@ -65,6 +71,15 @@ export async function GET() {
       todayAmount,
       yesterdayAmount,
       thisMonthAmount
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store',
+        'CDN-Cache-Control': 'no-cache',
+        'Vercel-CDN-Cache-Control': 'no-cache'
+      }
     });
   } catch (error) {
     console.error('Error fetching summary:', error);

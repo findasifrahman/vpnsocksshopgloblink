@@ -92,7 +92,9 @@ export default function AdminDashboard() {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
-            'Surrogate-Control': 'no-store'
+            'Surrogate-Control': 'no-store',
+            'CDN-Cache-Control': 'no-cache',
+            'Vercel-CDN-Cache-Control': 'no-cache'
           }
         }),
         fetch(`/api/admin/package-availability?t=${timestamp}`, {
@@ -102,7 +104,9 @@ export default function AdminDashboard() {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
-            'Surrogate-Control': 'no-store'
+            'Surrogate-Control': 'no-store',
+            'CDN-Cache-Control': 'no-cache',
+            'Vercel-CDN-Cache-Control': 'no-cache'
           }
         }),
         fetch(`/api/admin/shop-stats?t=${timestamp}`, {
@@ -112,7 +116,9 @@ export default function AdminDashboard() {
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
-            'Surrogate-Control': 'no-store'
+            'Surrogate-Control': 'no-store',
+            'CDN-Cache-Control': 'no-cache',
+            'Vercel-CDN-Cache-Control': 'no-cache'
           }
         })
       ]);
@@ -158,8 +164,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchData();
     
-    // Set up polling with a longer interval (30 seconds)
-    const interval = setInterval(fetchData, 30000);
+    // Set up polling with a shorter interval (10 seconds)
+    const interval = setInterval(fetchData, 10000);
     
     // Cleanup interval on component unmount
     return () => clearInterval(interval);
